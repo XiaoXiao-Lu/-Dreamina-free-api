@@ -9,11 +9,79 @@ class DreaminaApp {
 
     // 初始化应用
     init() {
+        this.preventHorizontalScroll(); // 防止横向滚动
         this.setupFormSubmit();
         this.loadInitialData();
         this.restoreTasks(); // 恢复未完成的任务
         this.startTaskSync(); // 启动任务同步
         ui.updateCharCount();
+    }
+
+    // 防止横向滚动
+    preventHorizontalScroll() {
+        // 防止body横向滚动
+        document.body.style.overflowX = 'hidden';
+        document.documentElement.style.overflowX = 'hidden';
+
+        // 监听窗口大小变化
+        window.addEventListener('resize', () => {
+            document.body.style.overflowX = 'hidden';
+            document.documentElement.style.overflowX = 'hidden';
+        });
+
+        // 监听滚动事件,强制重置横向滚动
+        let scrollTimeout;
+        window.addEventListener('scroll', () => {
+            if (window.scrollX !== 0) {
+                window.scrollTo(0, window.scrollY);
+            }
+
+            // 防抖处理
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => {
+                if (window.scrollX !== 0) {
+                    window.scrollTo(0, window.scrollY);
+                }
+            }, 100);
+        }, { passive: true });
+
+        // 触摸事件处理(iOS)
+        let touchStartX = 0;
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+        }, { passive: true });
+
+        document.addEventListener('touchmove', (e) => {
+            const touchCurrentX = e.touches[0].clientX;
+            const diff = touchCurrentX - touchStartX;
+
+            // 如果是横向滑动且会导致页面滚动,阻止
+            if (Math.abs(diff) > 10 && window.scrollX === 0) {
+                const scrollableParent = this.findScrollableParent(e.target);
+                if (!scrollableParent || scrollableParent === document.body) {
+                    // 不在可滚动容器内,阻止默认行为
+                    if (Math.abs(diff) > Math.abs(e.touches[0].clientY - e.touches[0].clientY)) {
+                        e.preventDefault();
+                    }
+                }
+            }
+        }, { passive: false });
+    }
+
+    // 查找可滚动的父元素
+    findScrollableParent(element) {
+        if (!element || element === document.body) {
+            return null;
+        }
+
+        const style = window.getComputedStyle(element);
+        const overflowX = style.overflowX;
+
+        if (overflowX === 'auto' || overflowX === 'scroll') {
+            return element;
+        }
+
+        return this.findScrollableParent(element.parentElement);
     }
 
     // 加载初始数据

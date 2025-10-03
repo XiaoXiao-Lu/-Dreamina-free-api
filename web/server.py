@@ -14,6 +14,9 @@ import datetime
 from pathlib import Path
 import requests
 import hashlib
+from PIL import Image
+import io
+import zipfile
 
 # 添加父目录到路径，以便导入核心模块
 parent_dir = Path(__file__).parent.parent
@@ -41,6 +44,13 @@ api_client = None
 # 图片存储目录
 IMAGES_DIR = Path(__file__).parent / 'images'
 IMAGES_DIR.mkdir(exist_ok=True)
+
+# 缩略图目录
+THUMBNAILS_DIR = IMAGES_DIR / 'thumbnails'
+THUMBNAILS_DIR.mkdir(exist_ok=True)
+
+# 缩略图配置
+THUMBNAIL_SIZE = (400, 400)  # 缩略图最大尺寸
 
 def load_config():
     """加载配置文件"""
@@ -78,8 +88,32 @@ def save_config():
         logger.error(f"配置文件保存失败: {e}")
         return False
 
+def generate_thumbnail(image_path, thumbnail_path):
+    """生成缩略图"""
+    try:
+        with Image.open(image_path) as img:
+            # 转换为RGB模式(如果是RGBA)
+            if img.mode in ('RGBA', 'LA', 'P'):
+                background = Image.new('RGB', img.size, (255, 255, 255))
+                if img.mode == 'P':
+                    img = img.convert('RGBA')
+                background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+                img = background
+
+            # 生成缩略图(保持宽高比)
+            img.thumbnail(THUMBNAIL_SIZE, Image.Resampling.LANCZOS)
+
+            # 保存缩略图
+            img.save(thumbnail_path, 'JPEG', quality=85, optimize=True)
+
+        logger.info(f"缩略图生成成功: {thumbnail_path.name}")
+        return True
+    except Exception as e:
+        logger.error(f"生成缩略图失败: {e}")
+        return False
+
 def download_and_save_image(image_url):
-    """下载并保存图片到本地"""
+    """下载并保存图片到本地,同时生成缩略图"""
     try:
         # 使用URL的MD5作为文件名
         url_hash = hashlib.md5(image_url.encode()).hexdigest()
@@ -92,25 +126,36 @@ def download_and_save_image(image_url):
         filename = f"{url_hash}{file_ext}"
         filepath = IMAGES_DIR / filename
 
+        # 缩略图文件名(统一使用.jpg)
+        thumbnail_filename = f"{url_hash}_thumb.jpg"
+        thumbnail_path = THUMBNAILS_DIR / thumbnail_filename
+
         # 如果文件已存在,直接返回
-        if filepath.exists():
-            logger.info(f"图片已存在: {filename}")
-            return filename
+        if filepath.exists() and thumbnail_path.exists():
+            logger.info(f"图片和缩略图已存在: {filename}")
+            return filename, thumbnail_filename
 
         # 下载图片
         logger.info(f"开始下载图片: {image_url}")
         response = requests.get(image_url, timeout=30)
         response.raise_for_status()
 
-        # 保存图片
+        # 保存原图
         with open(filepath, 'wb') as f:
             f.write(response.content)
 
-        logger.info(f"图片保存成功: {filename}")
-        return filename
+        logger.info(f"原图保存成功: {filename}")
+
+        # 生成缩略图
+        if generate_thumbnail(filepath, thumbnail_path):
+            logger.info(f"缩略图生成成功: {thumbnail_filename}")
+        else:
+            thumbnail_filename = None
+
+        return filename, thumbnail_filename
     except Exception as e:
         logger.error(f"下载图片失败: {e}")
-        return None
+        return None, None
 
 def init_components():
     """初始化核心组件"""
@@ -855,23 +900,25 @@ def add_history():
     try:
         data = request.json
 
-        # 下载并保存图片到本地
+        # 下载并保存图片到本地,同时生成缩略图
         original_images = data.get('images', [])
         local_images = []
 
         for img_url in original_images:
-            local_filename = download_and_save_image(img_url)
+            local_filename, thumbnail_filename = download_and_save_image(img_url)
             if local_filename:
-                # 保存本地文件名,用于快速加载
+                # 保存本地文件名和缩略图文件名
                 local_images.append({
                     'original': img_url,
-                    'local': local_filename
+                    'local': local_filename,
+                    'thumbnail': thumbnail_filename
                 })
             else:
                 # 如果下载失败,仍然保存原始URL
                 local_images.append({
                     'original': img_url,
-                    'local': None
+                    'local': None,
+                    'thumbnail': None
                 })
 
         # 创建历史记录项
@@ -967,6 +1014,73 @@ def serve_local_image(filename):
             'success': False,
             'message': '图片不存在'
         }), 404
+
+@app.route('/api/thumbnails/<filename>')
+def serve_thumbnail(filename):
+    """提供缩略图"""
+    try:
+        return send_from_directory(THUMBNAILS_DIR, filename)
+    except Exception as e:
+        logger.error(f"获取缩略图失败: {e}")
+        return jsonify({
+            'success': False,
+            'message': '缩略图不存在'
+        }), 404
+
+@app.route('/api/images/batch-download', methods=['POST'])
+def batch_download_images():
+    """批量下载图片"""
+    try:
+        data = request.json
+        image_urls = data.get('images', [])
+
+        if not image_urls:
+            return jsonify({
+                'success': False,
+                'message': '没有选择图片'
+            }), 400
+
+        # 创建内存中的ZIP文件
+        memory_file = io.BytesIO()
+
+        with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for idx, img_url in enumerate(image_urls, 1):
+                try:
+                    # 下载图片
+                    response = requests.get(img_url, timeout=30)
+                    response.raise_for_status()
+
+                    # 获取文件扩展名
+                    file_ext = '.png'
+                    if '.' in img_url.split('/')[-1]:
+                        file_ext = '.' + img_url.split('.')[-1].split('?')[0]
+
+                    # 添加到ZIP
+                    filename = f"image_{idx}{file_ext}"
+                    zf.writestr(filename, response.content)
+
+                    logger.info(f"添加图片到ZIP: {filename}")
+                except Exception as e:
+                    logger.error(f"下载图片失败: {img_url}, 错误: {e}")
+                    continue
+
+        # 准备响应
+        memory_file.seek(0)
+
+        return Response(
+            memory_file.getvalue(),
+            mimetype='application/zip',
+            headers={
+                'Content-Disposition': f'attachment; filename=dreamina_images_{int(time.time())}.zip',
+                'Content-Type': 'application/zip'
+            }
+        )
+    except Exception as e:
+        logger.error(f"批量下载失败: {e}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
 
 @app.route('/api/proxy/image', methods=['GET'])
 def proxy_image():

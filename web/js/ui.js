@@ -625,9 +625,21 @@ class UIManager {
                         <div class="text-muted">模型: ${item.model} | ${item.resolution} | ${item.ratio}</div>
                     </div>
                     <div class="history-item-images">
-                        ${(item.images || []).slice(0, 4).map(img => `
-                            <img src="${this.getProxyImageUrl(img)}" alt="历史图片" onclick="ui.showImagePreview('${this.getProxyImageUrl(img)}')">
-                        `).join('')}
+                        ${(item.images || []).slice(0, 4).map((img, idx) => {
+                            const thumbnailUrl = this.getProxyImageUrl(img, true);  // 使用缩略图
+                            const originalUrl = this.getOriginalImageUrl(img);
+                            return `
+                                <div class="image-wrapper">
+                                    <div class="image-skeleton"></div>
+                                    <img
+                                        src="${thumbnailUrl}"
+                                        alt="历史图片"
+                                        onclick="ui.showImagePreview('${this.escapeHtml(originalUrl)}')"
+                                        onload="this.previousElementSibling.style.display='none'"
+                                        onerror="this.previousElementSibling.style.display='none'; this.src='${this.escapeHtml(originalUrl)}'">
+                                </div>
+                            `;
+                        }).join('')}
                     </div>
                     <button class="btn-delete-history" onclick="ui.deleteHistoryItem('${item.id}')" title="删除">
                         <i class="fas fa-trash"></i>
@@ -806,13 +818,16 @@ class UIManager {
                 <div class="result-info">
                     <span><i class="fas fa-images"></i> ${result.images.length} 张图片</span>
                     <span><i class="fas fa-clock"></i> ${result.duration}秒</span>
+                    <button class="btn btn-sm btn-primary" onclick="ui.batchDownloadImages(${JSON.stringify(result.images)})" title="批量下载">
+                        <i class="fas fa-download"></i> 全部下载
+                    </button>
                 </div>
                 <div class="image-grid">
                     ${result.images.map(img => `
                         <div class="image-item">
-                            <img src="${this.getProxyImageUrl(img)}" alt="生成的图片" onclick="ui.showImagePreview('${img}')">
+                            <img src="${this.getProxyImageUrl(img)}" alt="生成的图片" onclick="ui.showImagePreview('${this.escapeHtml(img)}')">
                             <div class="image-actions">
-                                <button onclick="ui.downloadImage('${img}')" title="下载">
+                                <button onclick="ui.downloadImage('${this.escapeHtml(img)}')" title="下载">
                                     <i class="fas fa-download"></i>
                                 </button>
                             </div>
@@ -875,20 +890,88 @@ class UIManager {
     }
 
     // 获取图片URL(优先使用本地缓存)
-    getProxyImageUrl(imageInfo) {
+    getProxyImageUrl(imageInfo, useThumbnail = false) {
         const serverUrl = localStorage.getItem('dreamina_server_url') || '';
         const baseUrl = serverUrl || window.location.origin;
 
-        // 如果是对象格式(包含local字段),优先使用本地图片
-        if (typeof imageInfo === 'object' && imageInfo.local) {
-            return `${baseUrl}/api/images/${imageInfo.local}`;
+        // 如果是对象格式
+        if (typeof imageInfo === 'object') {
+            // 如果需要缩略图且有缩略图
+            if (useThumbnail && imageInfo.thumbnail) {
+                return `${baseUrl}/api/thumbnails/${imageInfo.thumbnail}`;
+            }
+
+            // 优先使用本地原图
+            if (imageInfo.local) {
+                return `${baseUrl}/api/images/${imageInfo.local}`;
+            }
+
+            // 使用原始URL
+            const originalUrl = imageInfo.original;
+            return `${baseUrl}/api/proxy/image?url=${encodeURIComponent(originalUrl)}`;
         }
 
-        // 如果是对象但没有local,使用original
-        const originalUrl = typeof imageInfo === 'object' ? imageInfo.original : imageInfo;
+        // 如果是字符串,使用代理
+        return `${baseUrl}/api/proxy/image?url=${encodeURIComponent(imageInfo)}`;
+    }
 
-        // 使用代理
-        return `${baseUrl}/api/proxy/image?url=${encodeURIComponent(originalUrl)}`;
+    // 获取原图URL
+    getOriginalImageUrl(imageInfo) {
+        if (typeof imageInfo === 'object') {
+            return imageInfo.original || imageInfo.local;
+        }
+        return imageInfo;
+    }
+
+    // 批量下载图片
+    async batchDownloadImages(images) {
+        try {
+            if (!images || images.length === 0) {
+                this.showToast('没有可下载的图片', 'error');
+                return;
+            }
+
+            this.showLoading();
+            this.showToast(`正在打包 ${images.length} 张图片...`, 'info');
+
+            // 获取原图URL列表
+            const imageUrls = images.map(img => this.getOriginalImageUrl(img));
+
+            // 调用批量下载API
+            const response = await fetch(`${CONFIG.api.baseUrl}/images/batch-download`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    images: imageUrls
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('批量下载失败');
+            }
+
+            // 获取ZIP文件
+            const blob = await response.blob();
+
+            // 创建下载链接
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `dreamina_images_${Date.now()}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+
+            this.hideLoading();
+            this.showToast(`成功下载 ${images.length} 张图片`, 'success');
+        } catch (error) {
+            console.error('批量下载失败:', error);
+            this.hideLoading();
+            this.showToast('批量下载失败', 'error');
+        }
     }
 }
 
