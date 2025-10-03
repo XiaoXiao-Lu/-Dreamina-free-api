@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA功能测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            padding: 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .test-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .test-section h2 {
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+        }
+        
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+        }
+        
+        .status-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        .status-icon.success {
+            background: #10b981;
+        }
+        
+        .status-icon.error {
+            background: #ef4444;
+        }
+        
+        .status-icon.warning {
+            background: #f59e0b;
+        }
+        
+        button {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-right: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        button:hover {
+            transform: scale(1.05);
+        }
+        
+        .log {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-family: monospace;
+            font-size: 0.875rem;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 1rem;
+        }
+        
+        .log-entry {
+            margin-bottom: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 PWA功能测试</h1>
+        
+        <!-- Service Worker状态 -->
+        <div class="test-section">
+            <h2>📡 Service Worker</h2>
+            <div id="sw-status"></div>
+            <button onclick="registerSW()">注册Service Worker</button>
+            <button onclick="unregisterSW()">注销Service Worker</button>
+            <button onclick="updateSW()">检查更新</button>
+        </div>
+        
+        <!-- 缓存状态 -->
+        <div class="test-section">
+            <h2>💾 缓存状态</h2>
+            <div id="cache-status"></div>
+            <button onclick="checkCache()">检查缓存</button>
+            <button onclick="clearCache()">清除缓存</button>
+        </div>
+        
+        <!-- PWA安装状态 -->
+        <div class="test-section">
+            <h2>📱 PWA安装</h2>
+            <div id="pwa-status"></div>
+            <button onclick="checkPWA()">检查PWA状态</button>
+        </div>
+        
+        <!-- 网络状态 -->
+        <div class="test-section">
+            <h2>📶 网络状态</h2>
+            <div id="network-status"></div>
+        </div>
+        
+        <!-- 日志 -->
+        <div class="test-section">
+            <h2>📋 日志</h2>
+            <div id="log" class="log"></div>
+            <button onclick="clearLog()">清除日志</button>
+        </div>
+    </div>
+    
+    <script>
+        const log = (message, type = 'info') => {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            const time = new Date().toLocaleTimeString();
+            entry.textContent = `[${time}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        };
+        
+        const clearLog = () => {
+            document.getElementById('log').innerHTML = '';
+        };
+        
+        const showStatus = (elementId, items) => {
+            const div = document.getElementById(elementId);
+            div.innerHTML = items.map(item => `
+                <div class="status">
+                    <div class="status-icon ${item.status}">${item.status === 'success' ? '✓' : item.status === 'error' ? '✗' : '!'}</div>
+                    <div>${item.text}</div>
+                </div>
+            `).join('');
+        };
+        
+        // Service Worker检查
+        const checkSW = async () => {
+            const items = [];
+            
+            if ('serviceWorker' in navigator) {
+                items.push({ status: 'success', text: 'Service Worker API支持' });
+                
+                const registration = await navigator.serviceWorker.getRegistration();
+                if (registration) {
+                    items.push({ status: 'success', text: `已注册: ${registration.scope}` });
+                    
+                    if (registration.active) {
+                        items.push({ status: 'success', text: '状态: 激活' });
+                    } else if (registration.installing) {
+                        items.push({ status: 'warning', text: '状态: 安装中' });
+                    } else if (registration.waiting) {
+                        items.push({ status: 'warning', text: '状态: 等待中' });
+                    }
+                } else {
+                    items.push({ status: 'warning', text: '未注册Service Worker' });
+                }
+            } else {
+                items.push({ status: 'error', text: 'Service Worker API不支持' });
+            }
+            
+            showStatus('sw-status', items);
+        };
+        
+        const registerSW = async () => {
+            try {
+                const registration = await navigator.serviceWorker.register('/sw.js');
+                log('✅ Service Worker注册成功');
+                await checkSW();
+            } catch (error) {
+                log('❌ Service Worker注册失败: ' + error.message);
+            }
+        };
+        
+        const unregisterSW = async () => {
+            const registration = await navigator.serviceWorker.getRegistration();
+            if (registration) {
+                await registration.unregister();
+                log('✅ Service Worker已注销');
+                await checkSW();
+            }
+        };
+        
+        const updateSW = async () => {
+            const registration = await navigator.serviceWorker.getRegistration();
+            if (registration) {
+                await registration.update();
+                log('🔄 检查Service Worker更新');
+                await checkSW();
+            }
+        };
+        
+        // 缓存检查
+        const checkCache = async () => {
+            const items = [];
+            
+            if ('caches' in window) {
+                items.push({ status: 'success', text: 'Cache API支持' });
+                
+                const cacheNames = await caches.keys();
+                items.push({ status: 'success', text: `缓存数量: ${cacheNames.length}` });
+                
+                for (const name of cacheNames) {
+                    const cache = await caches.open(name);
+                    const keys = await cache.keys();
+                    items.push({ status: 'success', text: `${name}: ${keys.length}个资源` });
+                }
+            } else {
+                items.push({ status: 'error', text: 'Cache API不支持' });
+            }
+            
+            showStatus('cache-status', items);
+        };
+        
+        const clearCache = async () => {
+            const cacheNames = await caches.keys();
+            for (const name of cacheNames) {
+                await caches.delete(name);
+            }
+            log('✅ 缓存已清除');
+            await checkCache();
+        };
+        
+        // PWA检查
+        const checkPWA = () => {
+            const items = [];
+            
+            // 检查manifest
+            const manifest = document.querySelector('link[rel="manifest"]');
+            if (manifest) {
+                items.push({ status: 'success', text: 'Manifest已配置' });
+            } else {
+                items.push({ status: 'error', text: 'Manifest未配置' });
+            }
+            
+            // 检查是否在独立模式运行
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                                window.navigator.standalone === true;
+            if (isStandalone) {
+                items.push({ status: 'success', text: '运行模式: PWA独立模式' });
+            } else {
+                items.push({ status: 'warning', text: '运行模式: 浏览器模式' });
+            }
+            
+            // 检查平台
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            const isAndroid = /Android/.test(navigator.userAgent);
+            if (isIOS) {
+                items.push({ status: 'success', text: '平台: iOS' });
+            } else if (isAndroid) {
+                items.push({ status: 'success', text: '平台: Android' });
+            } else {
+                items.push({ status: 'success', text: '平台: Desktop' });
+            }
+            
+            showStatus('pwa-status', items);
+        };
+        
+        // 网络状态
+        const checkNetwork = () => {
+            const items = [];
+            
+            if (navigator.onLine) {
+                items.push({ status: 'success', text: '网络状态: 在线' });
+            } else {
+                items.push({ status: 'error', text: '网络状态: 离线' });
+            }
+            
+            if ('connection' in navigator) {
+                const conn = navigator.connection;
+                items.push({ status: 'success', text: `连接类型: ${conn.effectiveType || '未知'}` });
+            }
+            
+            showStatus('network-status', items);
+        };
+        
+        // 初始化
+        window.addEventListener('load', async () => {
+            log('🚀 PWA测试工具已加载');
+            await checkSW();
+            await checkCache();
+            checkPWA();
+            checkNetwork();
+        });
+        
+        // 监听网络状态变化
+        window.addEventListener('online', () => {
+            log('📶 网络已连接');
+            checkNetwork();
+        });
+        
+        window.addEventListener('offline', () => {
+            log('📵 网络已断开');
+            checkNetwork();
+        });
+    </script>
+</body>
+</html>
+

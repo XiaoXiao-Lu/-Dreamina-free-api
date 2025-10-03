@@ -86,6 +86,11 @@ class UIManager {
         this.zoomInBtn = document.getElementById('zoomIn');
         this.zoomOutBtn = document.getElementById('zoomOut');
         this.zoomResetBtn = document.getElementById('zoomReset');
+        this.navPrevBtn = document.getElementById('navPrev');
+        this.navNextBtn = document.getElementById('navNext');
+        this.imageCounter = document.getElementById('imageCounter');
+        this.currentImageNum = document.getElementById('currentImageNum');
+        this.totalImageNum = document.getElementById('totalImageNum');
 
         // 图片缩放相关
         this.imageScale = 1;
@@ -94,6 +99,11 @@ class UIManager {
         this.isDragging = false;
         this.startX = 0;
         this.startY = 0;
+
+        // 图片切换相关
+        this.currentImageList = [];  // 当前图片列表
+        this.currentImageIndex = 0;  // 当前图片索引
+        this.preloadedImages = new Map();  // 预加载的图片缓存
         
         // 生成按钮
         this.generateBtn = document.getElementById('generateBtn');
@@ -147,8 +157,15 @@ class UIManager {
         this.zoomOutBtn.addEventListener('click', () => this.zoomImage(-0.2));
         this.zoomResetBtn.addEventListener('click', () => this.resetZoom());
 
+        // 导航按钮
+        this.navPrevBtn.addEventListener('click', () => this.showPreviousImage());
+        this.navNextBtn.addEventListener('click', () => this.showNextImage());
+
         // 图片缩放和拖动事件
         this.initImageZoomAndDrag();
+
+        // 键盘事件
+        this.initKeyboardEvents();
 
         // 加载服务器设置
         this.loadServerUrl();
@@ -433,9 +450,26 @@ class UIManager {
     }
 
     // 显示图片预览 - 直接打开全屏查看器
-    showImagePreview(imageUrl, thumbnailUrl = null) {
+    showImagePreview(imageUrl, thumbnailUrl = null, imageList = null, currentIndex = 0) {
+        // 设置图片列表和当前索引
+        if (imageList && imageList.length > 0) {
+            this.currentImageList = imageList;
+            this.currentImageIndex = currentIndex;
+        } else {
+            // 单张图片
+            this.currentImageList = [{
+                original: imageUrl,
+                thumbnail: thumbnailUrl,
+                local: null
+            }];
+            this.currentImageIndex = 0;
+        }
+
         // 直接打开全屏查看器,如果有缩略图则先显示缩略图
         this.showFullscreenViewer(imageUrl, thumbnailUrl);
+
+        // 预加载相邻图片
+        this.preloadAdjacentImages();
     }
 
     // 显示全屏图片查看器
@@ -447,6 +481,9 @@ class UIManager {
         this.updateImageTransform();
 
         this.fullscreenViewer.classList.add('active');
+
+        // 更新计数器
+        this.updateImageCounter();
 
         // 如果有缩略图,先显示缩略图(即时显示)
         if (thumbnailUrl) {
@@ -743,6 +780,206 @@ class UIManager {
         this.updateImageTransform();
     }
 
+    // 初始化键盘事件
+    initKeyboardEvents() {
+        document.addEventListener('keydown', (e) => {
+            // 只在全屏查看器打开时响应
+            if (!this.fullscreenViewer.classList.contains('active')) {
+                return;
+            }
+
+            switch(e.key) {
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    this.showPreviousImage();
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    this.showNextImage();
+                    break;
+                case 'Escape':
+                    e.preventDefault();
+                    this.hideFullscreenViewer();
+                    break;
+            }
+        });
+
+        // 手机端滑动切换
+        this.initSwipeGesture();
+    }
+
+    // 初始化滑动手势
+    initSwipeGesture() {
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchEndX = 0;
+        let touchEndY = 0;
+        let isSwiping = false;
+
+        this.fullscreenViewer.addEventListener('touchstart', (e) => {
+            // 只在全屏查看器打开且有多张图片时响应
+            if (!this.fullscreenViewer.classList.contains('active') || this.currentImageList.length <= 1) {
+                return;
+            }
+
+            // 如果正在缩放,不处理滑动
+            if (this.imageScale > 1) {
+                return;
+            }
+
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            isSwiping = true;
+        }, { passive: true });
+
+        this.fullscreenViewer.addEventListener('touchmove', (e) => {
+            if (!isSwiping || this.imageScale > 1) {
+                return;
+            }
+
+            touchEndX = e.touches[0].clientX;
+            touchEndY = e.touches[0].clientY;
+        }, { passive: true });
+
+        this.fullscreenViewer.addEventListener('touchend', (e) => {
+            if (!isSwiping || this.imageScale > 1) {
+                isSwiping = false;
+                return;
+            }
+
+            const deltaX = touchEndX - touchStartX;
+            const deltaY = touchEndY - touchStartY;
+
+            // 判断是否为水平滑动(水平距离大于垂直距离)
+            if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                // 滑动距离超过50px才触发
+                if (Math.abs(deltaX) > 50) {
+                    if (deltaX > 0) {
+                        // 向右滑动 - 上一张
+                        this.showPreviousImage();
+                    } else {
+                        // 向左滑动 - 下一张
+                        this.showNextImage();
+                    }
+                }
+            }
+
+            isSwiping = false;
+        }, { passive: true });
+    }
+
+    // 显示上一张图片
+    showPreviousImage() {
+        if (this.currentImageList.length === 0) return;
+
+        this.currentImageIndex--;
+        if (this.currentImageIndex < 0) {
+            this.currentImageIndex = this.currentImageList.length - 1;
+        }
+
+        const imageInfo = this.currentImageList[this.currentImageIndex];
+        this.switchToImage(imageInfo);
+    }
+
+    // 显示下一张图片
+    showNextImage() {
+        if (this.currentImageList.length === 0) return;
+
+        this.currentImageIndex++;
+        if (this.currentImageIndex >= this.currentImageList.length) {
+            this.currentImageIndex = 0;
+        }
+
+        const imageInfo = this.currentImageList[this.currentImageIndex];
+        this.switchToImage(imageInfo);
+    }
+
+    // 切换到指定图片
+    switchToImage(imageInfo) {
+        const originalUrl = this.getOriginalImageUrl(imageInfo);
+        const thumbnailUrl = this.getProxyImageUrl(imageInfo, true);
+
+        // 重置缩放
+        this.resetZoom();
+
+        // 更新计数器
+        this.updateImageCounter();
+
+        // 检查是否已预加载
+        if (this.preloadedImages.has(originalUrl)) {
+            // 使用预加载的图片
+            this.fullscreenImage.src = originalUrl;
+            this.fullscreenImage.style.opacity = '1';
+        } else {
+            // 先显示缩略图,后台加载原图
+            if (thumbnailUrl) {
+                this.fullscreenImage.src = thumbnailUrl;
+                this.fullscreenImage.style.opacity = '1';
+            }
+
+            // 加载原图
+            const img = new Image();
+            img.onload = () => {
+                this.preloadedImages.set(originalUrl, img);
+                this.fullscreenImage.src = originalUrl;
+            };
+            img.src = originalUrl;
+        }
+
+        // 预加载前后图片
+        this.preloadAdjacentImages();
+    }
+
+    // 更新图片计数器
+    updateImageCounter() {
+        if (this.currentImageList.length > 1) {
+            this.currentImageNum.textContent = this.currentImageIndex + 1;
+            this.totalImageNum.textContent = this.currentImageList.length;
+            this.imageCounter.style.display = 'block';
+            this.navPrevBtn.style.display = 'flex';
+            this.navNextBtn.style.display = 'flex';
+        } else {
+            this.imageCounter.style.display = 'none';
+            this.navPrevBtn.style.display = 'none';
+            this.navNextBtn.style.display = 'none';
+        }
+    }
+
+    // 预加载相邻图片
+    preloadAdjacentImages() {
+        if (this.currentImageList.length === 0) return;
+
+        // 预加载下一张
+        const nextIndex = (this.currentImageIndex + 1) % this.currentImageList.length;
+        const nextImage = this.currentImageList[nextIndex];
+        this.preloadImage(nextImage);
+
+        // 预加载上一张
+        const prevIndex = (this.currentImageIndex - 1 + this.currentImageList.length) % this.currentImageList.length;
+        const prevImage = this.currentImageList[prevIndex];
+        this.preloadImage(prevImage);
+    }
+
+    // 预加载单张图片
+    preloadImage(imageInfo) {
+        const originalUrl = this.getOriginalImageUrl(imageInfo);
+
+        // 如果已经预加载过,跳过
+        if (this.preloadedImages.has(originalUrl)) {
+            return;
+        }
+
+        const img = new Image();
+        img.onload = () => {
+            this.preloadedImages.set(originalUrl, img);
+            console.log('预加载完成:', originalUrl);
+        };
+        img.onerror = () => {
+            console.error('预加载失败:', originalUrl);
+        };
+        img.src = originalUrl;
+    }
+
     // 隐藏图片预览
     hideImagePreview() {
         this.imagePreviewModal.classList.remove('active');
@@ -827,13 +1064,14 @@ class UIManager {
                         ${(item.images || []).slice(0, 4).map((img, idx) => {
                             const thumbnailUrl = this.getProxyImageUrl(img, true);  // 使用缩略图
                             const originalUrl = this.getOriginalImageUrl(img);
+                            const imageListJson = this.escapeHtml(JSON.stringify(item.images || []));
                             return `
                                 <div class="image-wrapper">
                                     <div class="image-skeleton"></div>
                                     <img
                                         src="${thumbnailUrl}"
                                         alt="历史图片"
-                                        onclick="ui.showImagePreview('${this.escapeHtml(originalUrl)}', '${this.escapeHtml(thumbnailUrl)}')"
+                                        onclick="ui.showHistoryImage('${item.id}', ${idx})"
                                         onload="this.previousElementSibling.style.display='none'"
                                         onerror="this.previousElementSibling.style.display='none'; this.src='${this.escapeHtml(originalUrl)}'">
                                 </div>
@@ -863,6 +1101,24 @@ class UIManager {
     loadMoreHistory() {
         this.historyDisplayCount += 10;
         this.renderHistory(false);
+    }
+
+    // 显示历史记录图片(支持左右切换)
+    showHistoryImage(historyId, imageIndex) {
+        // 从历史记录中找到对应项
+        const historyItem = this.allHistory.find(item => item.id === historyId);
+        if (!historyItem || !historyItem.images) {
+            return;
+        }
+
+        const images = historyItem.images;
+        const currentImage = images[imageIndex];
+
+        const originalUrl = this.getOriginalImageUrl(currentImage);
+        const thumbnailUrl = this.getProxyImageUrl(currentImage, true);
+
+        // 传递完整的图片列表
+        this.showImagePreview(originalUrl, thumbnailUrl, images, imageIndex);
     }
 
     // 加载历史记录项

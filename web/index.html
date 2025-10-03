@@ -3,9 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+    <!-- PWA配置 -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Dreamina AI">
     <meta name="format-detection" content="telephone=no">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="description" content="AI图片生成工具,支持文生图、历史记录管理">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- iOS图标 -->
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="/icons/icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="96x96" href="/icons/icon-96x96.png">
+    <link rel="apple-touch-icon" sizes="128x128" href="/icons/icon-128x128.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="/icons/icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png">
+
+    <!-- 标准图标 -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-72x72.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-72x72.png">
+
     <title>Dreamina AI 图片生成</title>
     <link rel="stylesheet" href="css/style.css?v=16">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -254,12 +277,23 @@
     <!-- 全屏图片查看器 -->
     <div class="fullscreen-viewer" id="fullscreenViewer">
         <div class="fullscreen-viewer-header">
-            <button class="fullscreen-close" id="fullscreenClose" title="关闭">
+            <button class="fullscreen-close" id="fullscreenClose" title="关闭 (Esc)">
                 <i class="fas fa-times"></i>
             </button>
         </div>
         <div class="fullscreen-viewer-content">
+            <!-- 左箭头 -->
+            <button class="nav-arrow nav-arrow-left" id="navPrev" title="上一张 (←)">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+
             <img id="fullscreenImage" src="" alt="全屏查看">
+
+            <!-- 右箭头 -->
+            <button class="nav-arrow nav-arrow-right" id="navNext" title="下一张 (→)">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+
             <div class="zoom-controls">
                 <button class="zoom-btn" id="zoomOut" title="缩小">
                     <i class="fas fa-search-minus"></i>
@@ -272,7 +306,12 @@
                 </button>
             </div>
             <div class="zoom-hint" id="zoomHint">
-                💡 PC: 滚轮缩放 | 手机: 双指缩放 | 双击重置
+                💡 PC: 滚轮缩放 ←/→切换 | 手机: 双指缩放 左右滑动切换
+            </div>
+
+            <!-- 图片计数器 -->
+            <div class="image-counter" id="imageCounter">
+                <span id="currentImageNum">1</span> / <span id="totalImageNum">1</span>
             </div>
         </div>
         <div class="fullscreen-viewer-footer">
@@ -335,6 +374,103 @@
     <script src="js/api.js?v=11"></script>
     <script src="js/ui.js?v=11"></script>
     <script src="js/app.js?v=11"></script>
+
+    <!-- PWA Service Worker 注册 -->
+    <script>
+        // 注册Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((registration) => {
+                        console.log('✅ Service Worker注册成功:', registration.scope);
+
+                        // 检查更新
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            console.log('🔄 发现新版本Service Worker');
+
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // 新版本可用,提示用户刷新
+                                    if (confirm('发现新版本!点击确定刷新页面以使用最新版本。')) {
+                                        newWorker.postMessage({ type: 'SKIP_WAITING' });
+                                        window.location.reload();
+                                    }
+                                }
+                            });
+                        });
+                    })
+                    .catch((error) => {
+                        console.error('❌ Service Worker注册失败:', error);
+                    });
+
+                // 监听Service Worker控制器变化
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    console.log('🔄 Service Worker已更新');
+                });
+            });
+        }
+
+        // 检测是否为PWA模式
+        window.addEventListener('load', () => {
+            const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
+                         window.navigator.standalone === true;
+
+            if (isPWA) {
+                console.log('📱 运行在PWA模式');
+                document.body.classList.add('pwa-mode');
+            } else {
+                console.log('🌐 运行在浏览器模式');
+
+                // 显示安装提示(仅iOS Safari)
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                const isInStandaloneMode = window.navigator.standalone;
+
+                if (isIOS && !isInStandaloneMode) {
+                    // 可以在这里显示"添加到主屏幕"的提示
+                    setTimeout(() => {
+                        const showInstallTip = localStorage.getItem('pwa_install_tip_shown');
+                        if (!showInstallTip) {
+                            const tip = document.createElement('div');
+                            tip.className = 'pwa-install-tip';
+                            tip.innerHTML = `
+                                <div class="pwa-install-content">
+                                    <i class="fas fa-mobile-alt"></i>
+                                    <p>💡 提示: 点击下方 <i class="fas fa-share"></i> 按钮,选择"添加到主屏幕",即可像App一样使用!</p>
+                                    <button onclick="this.parentElement.parentElement.remove(); localStorage.setItem('pwa_install_tip_shown', 'true');">
+                                        知道了
+                                    </button>
+                                </div>
+                            `;
+                            document.body.appendChild(tip);
+                        }
+                    }, 3000);
+                }
+            }
+        });
+
+        // 离线/在线状态检测
+        window.addEventListener('online', () => {
+            console.log('📶 网络已连接');
+            const offlineTip = document.querySelector('.offline-tip');
+            if (offlineTip) {
+                offlineTip.remove();
+            }
+        });
+
+        window.addEventListener('offline', () => {
+            console.log('📵 网络已断开');
+            const tip = document.createElement('div');
+            tip.className = 'offline-tip';
+            tip.innerHTML = `
+                <div class="offline-content">
+                    <i class="fas fa-wifi-slash"></i>
+                    <span>离线模式 - 部分功能受限</span>
+                </div>
+            `;
+            document.body.appendChild(tip);
+        });
+    </script>
 </body>
 </html>
 
