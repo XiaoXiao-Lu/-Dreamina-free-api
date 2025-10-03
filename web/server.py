@@ -1007,7 +1007,11 @@ def clear_history():
 def serve_local_image(filename):
     """提供本地保存的图片"""
     try:
-        return send_from_directory(IMAGES_DIR, filename)
+        response = send_from_directory(IMAGES_DIR, filename)
+        # 启用缓存,加快局域网传输
+        response.headers['Cache-Control'] = 'public, max-age=31536000'  # 缓存1年
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        return response
     except Exception as e:
         logger.error(f"获取本地图片失败: {e}")
         return jsonify({
@@ -1019,7 +1023,11 @@ def serve_local_image(filename):
 def serve_thumbnail(filename):
     """提供缩略图"""
     try:
-        return send_from_directory(THUMBNAILS_DIR, filename)
+        response = send_from_directory(THUMBNAILS_DIR, filename)
+        # 启用缓存,加快局域网传输
+        response.headers['Cache-Control'] = 'public, max-age=31536000'  # 缓存1年
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        return response
     except Exception as e:
         logger.error(f"获取缩略图失败: {e}")
         return jsonify({

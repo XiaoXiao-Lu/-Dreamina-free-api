@@ -128,52 +128,23 @@
                         </div>
                     </div>
 
-                    <!-- 生成模式选择 -->
-                    <div class="form-group">
-                        <label>
-                            <i class="fas fa-layer-group"></i> 生成模式
-                        </label>
-                        <div class="mode-tabs">
-                            <button type="button" class="mode-tab active" data-mode="t2i">
-                                <i class="fas fa-font"></i>
-                                文生图
-                            </button>
-                            <button type="button" class="mode-tab" data-mode="i2i">
-                                <i class="fas fa-image"></i>
-                                图生图
-                            </button>
+                    <!-- 模型、分辨率、比例 - 横向排列 -->
+                    <div class="form-row-3">
+                        <div class="form-group-inline">
+                            <label for="model">
+                                <i class="fas fa-brain"></i> 模型
+                            </label>
+                            <select id="model" class="form-control">
+                                <option value="NanoBanana">谷歌 NanoBanana</option>
+                                <option value="4.0">图片 4.0</option>
+                                <option value="3.1">图片 3.1</option>
+                                <option value="3.0" selected>图片 3.0</option>
+                                <option value="2.1">图片 2.1</option>
+                                <option value="2.0p">图片 2.0 Pro</option>
+                                <option value="1.4">图片 1.4</option>
+                            </select>
                         </div>
-                    </div>
-
-                    <!-- 参考图上传区域 (图生图模式) -->
-                    <div class="form-group" id="referenceImageSection" style="display: none;">
-                        <label>
-                            <i class="fas fa-images"></i> 参考图片 (最多6张)
-                        </label>
-                        <div class="image-upload-grid" id="imageUploadGrid">
-                            <!-- 动态生成上传框 -->
-                        </div>
-                    </div>
-
-                    <!-- 模型选择 -->
-                    <div class="form-group">
-                        <label for="model">
-                            <i class="fas fa-brain"></i> 模型
-                        </label>
-                        <select id="model" class="form-control">
-                            <option value="NanoBanana">谷歌 NanoBanana</option>
-                            <option value="4.0">图片 4.0</option>
-                            <option value="3.1">图片 3.1</option>
-                            <option value="3.0" selected>图片 3.0</option>
-                            <option value="2.1">图片 2.1</option>
-                            <option value="2.0p">图片 2.0 Pro</option>
-                            <option value="1.4">图片 1.4</option>
-                        </select>
-                    </div>
-
-                    <!-- 分辨率和比例 -->
-                    <div class="form-row">
-                        <div class="form-group">
+                        <div class="form-group-inline">
                             <label for="resolution">
                                 <i class="fas fa-expand"></i> 分辨率
                             </label>
@@ -183,7 +154,7 @@
                                 <option value="4k">4K</option>
                             </select>
                         </div>
-                        <div class="form-group">
+                        <div class="form-group-inline">
                             <label for="ratio">
                                 <i class="fas fa-crop"></i> 比例
                             </label>
@@ -289,6 +260,20 @@
         </div>
         <div class="fullscreen-viewer-content">
             <img id="fullscreenImage" src="" alt="全屏查看">
+            <div class="zoom-controls">
+                <button class="zoom-btn" id="zoomOut" title="缩小">
+                    <i class="fas fa-search-minus"></i>
+                </button>
+                <button class="zoom-btn" id="zoomReset" title="重置">
+                    <i class="fas fa-compress"></i>
+                </button>
+                <button class="zoom-btn" id="zoomIn" title="放大">
+                    <i class="fas fa-search-plus"></i>
+                </button>
+            </div>
+            <div class="zoom-hint" id="zoomHint">
+                💡 PC: 滚轮缩放 | 手机: 双指缩放 | 双击重置
+            </div>
         </div>
         <div class="fullscreen-viewer-footer">
             <button class="btn btn-primary" id="fullscreenDownload">

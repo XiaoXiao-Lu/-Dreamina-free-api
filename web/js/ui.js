@@ -26,10 +26,7 @@ class UIManager {
         this.seedInput = document.getElementById('seed');
         this.numImagesInput = document.getElementById('numImages');
         
-        // 模式切换
-        this.modeTabs = document.querySelectorAll('.mode-tab');
-        this.referenceImageSection = document.getElementById('referenceImageSection');
-        this.imageUploadGrid = document.getElementById('imageUploadGrid');
+
         
         // 高级选项
         this.toggleAdvanced = document.getElementById('toggleAdvanced');
@@ -86,6 +83,17 @@ class UIManager {
         this.fullscreenImage = document.getElementById('fullscreenImage');
         this.fullscreenClose = document.getElementById('fullscreenClose');
         this.fullscreenDownload = document.getElementById('fullscreenDownload');
+        this.zoomInBtn = document.getElementById('zoomIn');
+        this.zoomOutBtn = document.getElementById('zoomOut');
+        this.zoomResetBtn = document.getElementById('zoomReset');
+
+        // 图片缩放相关
+        this.imageScale = 1;
+        this.imageTranslateX = 0;
+        this.imageTranslateY = 0;
+        this.isDragging = false;
+        this.startX = 0;
+        this.startY = 0;
         
         // 生成按钮
         this.generateBtn = document.getElementById('generateBtn');
@@ -106,12 +114,7 @@ class UIManager {
         
         // 提示词字符计数
         this.promptInput.addEventListener('input', () => this.updateCharCount());
-        
-        // 模式切换
-        this.modeTabs.forEach(tab => {
-            tab.addEventListener('click', () => this.switchMode(tab.dataset.mode));
-        });
-        
+
         // 高级选项切换
         this.toggleAdvanced.addEventListener('click', () => this.toggleAdvancedOptions());
         
@@ -139,8 +142,13 @@ class UIManager {
             }
         });
 
-        // 初始化图片上传框
-        this.initImageUploadBoxes();
+        // 缩放按钮
+        this.zoomInBtn.addEventListener('click', () => this.zoomImage(0.2));
+        this.zoomOutBtn.addEventListener('click', () => this.zoomImage(-0.2));
+        this.zoomResetBtn.addEventListener('click', () => this.resetZoom());
+
+        // 图片缩放和拖动事件
+        this.initImageZoomAndDrag();
 
         // 加载服务器设置
         this.loadServerUrl();
@@ -257,80 +265,6 @@ class UIManager {
         } else {
             this.charCount.style.color = 'var(--text-muted)';
         }
-    }
-
-    // 切换生成模式
-    switchMode(mode) {
-        this.modeTabs.forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.mode === mode);
-        });
-        
-        if (mode === 'i2i') {
-            this.referenceImageSection.style.display = 'block';
-        } else {
-            this.referenceImageSection.style.display = 'none';
-        }
-    }
-
-    // 初始化图片上传框
-    initImageUploadBoxes() {
-        this.imageUploadGrid.innerHTML = '';
-        for (let i = 0; i < CONFIG.limits.maxReferenceImages; i++) {
-            const box = this.createImageUploadBox(i);
-            this.imageUploadGrid.appendChild(box);
-        }
-    }
-
-    // 创建图片上传框
-    createImageUploadBox(index) {
-        const box = document.createElement('div');
-        box.className = 'image-upload-box';
-        box.innerHTML = `
-            <input type="file" accept="image/*" id="refImage${index}" data-index="${index}">
-            <i class="fas fa-plus"></i>
-            <span>添加图片</span>
-        `;
-        
-        const input = box.querySelector('input');
-        input.addEventListener('change', (e) => this.handleImageUpload(e, box));
-        
-        box.addEventListener('click', () => {
-            if (!box.classList.contains('has-image')) {
-                input.click();
-            }
-        });
-        
-        return box;
-    }
-
-    // 处理图片上传
-    handleImageUpload(event, box) {
-        const file = event.target.files[0];
-        if (!file) return;
-        
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            box.innerHTML = `
-                <img src="${e.target.result}" alt="参考图">
-                <button type="button" class="remove-image">
-                    <i class="fas fa-times"></i>
-                </button>
-            `;
-            box.classList.add('has-image');
-            
-            const removeBtn = box.querySelector('.remove-image');
-            removeBtn.addEventListener('click', (event) => {
-                event.stopPropagation();
-                this.removeImage(box, event.target.dataset.index);
-            });
-        };
-        reader.readAsDataURL(file);
-    }
-
-    // 移除图片
-    removeImage(box, index) {
-        const newBox = this.createImageUploadBox(index);
-        box.replaceWith(newBox);
     }
 
     // 切换高级选项
@@ -498,36 +432,75 @@ class UIManager {
         this.loadingOverlay.classList.remove('active');
     }
 
-    // 显示图片预览
-    showImagePreview(imageUrl) {
-        // 使用代理接口
-        const apiBase = CONFIG.api.baseUrl.replace('/api', '');  // 移除 /api 后缀
-        const proxyUrl = `${apiBase}/api/proxy/image?url=${encodeURIComponent(imageUrl)}`;
-        this.previewImage.src = proxyUrl;
-        this.previewImage.onerror = () => {
-            this.previewImage.src = imageUrl; // 降级到原始URL
-        };
-        this.imagePreviewModal.classList.add('active');
-
-        // 点击图片打开全屏查看器
-        this.previewImage.onclick = () => {
-            this.showFullscreenViewer(imageUrl);
-        };
-
-        // 设置图片样式为可点击
-        this.previewImage.style.cursor = 'pointer';
-
-        this.downloadImage.onclick = () => {
-            api.downloadImage(imageUrl, `dreamina_${Date.now()}.png`);
-        };
+    // 显示图片预览 - 直接打开全屏查看器
+    showImagePreview(imageUrl, thumbnailUrl = null) {
+        // 直接打开全屏查看器,如果有缩略图则先显示缩略图
+        this.showFullscreenViewer(imageUrl, thumbnailUrl);
     }
 
     // 显示全屏图片查看器
-    showFullscreenViewer(imageUrl) {
-        // 直接使用原图URL,不使用代理
-        this.fullscreenImage.src = imageUrl;
+    showFullscreenViewer(imageUrl, thumbnailUrl = null) {
+        // 重置缩放和位置
+        this.imageScale = 1;
+        this.imageTranslateX = 0;
+        this.imageTranslateY = 0;
+        this.updateImageTransform();
 
         this.fullscreenViewer.classList.add('active');
+
+        // 如果有缩略图,先显示缩略图(即时显示)
+        if (thumbnailUrl) {
+            this.fullscreenImage.src = thumbnailUrl;
+            this.fullscreenImage.style.opacity = '1';
+            this.fullscreenImage.style.filter = 'blur(0px)';
+        } else {
+            this.fullscreenImage.style.opacity = '0';
+        }
+
+        // 显示加载提示
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'fullscreen-loading';
+        loadingDiv.innerHTML = `
+            <div class="loading-badge">
+                <i class="fas fa-arrow-up"></i>
+                <span>加载高清原图中...</span>
+            </div>
+        `;
+        this.fullscreenViewer.appendChild(loadingDiv);
+
+        // 后台加载原图
+        const img = new Image();
+
+        img.onload = () => {
+            // 原图加载完成,平滑切换
+            this.fullscreenImage.style.transition = 'opacity 0.3s ease';
+            this.fullscreenImage.style.opacity = '0';
+
+            setTimeout(() => {
+                this.fullscreenImage.src = imageUrl;
+                this.fullscreenImage.style.opacity = '1';
+                loadingDiv.remove();
+                this.showZoomHint();
+
+                // 移除transition
+                setTimeout(() => {
+                    this.fullscreenImage.style.transition = '';
+                }, 300);
+            }, 150);
+        };
+
+        img.onerror = () => {
+            loadingDiv.innerHTML = `
+                <div class="loading-badge error">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span>原图加载失败</span>
+                </div>
+            `;
+            setTimeout(() => loadingDiv.remove(), 2000);
+        };
+
+        // 开始加载原图
+        img.src = imageUrl;
 
         // 下载按钮
         this.fullscreenDownload.onclick = () => {
@@ -538,10 +511,236 @@ class UIManager {
         document.body.style.overflow = 'hidden';
     }
 
+    // 显示缩放提示
+    showZoomHint() {
+        const hint = document.getElementById('zoomHint');
+        if (hint) {
+            hint.classList.add('show');
+            setTimeout(() => {
+                hint.classList.remove('show');
+            }, 3000);
+        }
+    }
+
     // 隐藏全屏图片查看器
     hideFullscreenViewer() {
         this.fullscreenViewer.classList.remove('active');
         document.body.style.overflow = '';
+
+        // 重置缩放
+        this.imageScale = 1;
+        this.imageTranslateX = 0;
+        this.imageTranslateY = 0;
+        this.updateImageTransform();
+    }
+
+    // 初始化图片缩放和拖动
+    initImageZoomAndDrag() {
+        // 鼠标滚轮缩放
+        this.fullscreenImage.addEventListener('wheel', (e) => {
+            e.preventDefault();
+
+            const delta = e.deltaY > 0 ? -0.2 : 0.2;
+            const newScale = Math.max(0.5, Math.min(5, this.imageScale + delta));
+
+            this.imageScale = newScale;
+            this.updateImageTransform();
+        }, { passive: false });
+
+        // 鼠标拖动
+        this.fullscreenImage.addEventListener('mousedown', (e) => {
+            if (this.imageScale > 1) {
+                this.isDragging = true;
+                this.startX = e.clientX - this.imageTranslateX;
+                this.startY = e.clientY - this.imageTranslateY;
+                this.fullscreenImage.style.cursor = 'grabbing';
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (this.isDragging) {
+                this.imageTranslateX = e.clientX - this.startX;
+                this.imageTranslateY = e.clientY - this.startY;
+                this.updateImageTransform();
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            this.isDragging = false;
+            this.fullscreenImage.style.cursor = this.imageScale > 1 ? 'grab' : 'default';
+        });
+
+        // 触摸缩放(双指) - 改进版本
+        this.touchState = {
+            initialDistance: 0,
+            initialScale: 1,
+            isPinching: false,
+            lastTap: 0,
+            touchStartTime: 0
+        };
+
+        // iOS手势事件支持
+        this.fullscreenImage.addEventListener('gesturestart', (e) => {
+            e.preventDefault();
+            this.touchState.initialScale = this.imageScale;
+            console.log('gesturestart - 初始缩放:', this.touchState.initialScale);
+        });
+
+        this.fullscreenImage.addEventListener('gesturechange', (e) => {
+            e.preventDefault();
+            const newScale = this.touchState.initialScale * e.scale;
+            this.imageScale = Math.max(0.5, Math.min(5, newScale));
+            this.updateImageTransform();
+        });
+
+        this.fullscreenImage.addEventListener('gestureend', (e) => {
+            e.preventDefault();
+            console.log('gestureend - 最终缩放:', this.imageScale);
+        });
+
+        // 标准触摸事件(Android和备用)
+        this.fullscreenImage.addEventListener('touchstart', (e) => {
+            this.touchState.touchStartTime = Date.now();
+
+            if (e.touches.length === 2) {
+                // 双指缩放开始
+                e.preventDefault();
+                this.touchState.isPinching = true;
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+
+                // 计算两指距离
+                this.touchState.initialDistance = Math.hypot(
+                    touch2.clientX - touch1.clientX,
+                    touch2.clientY - touch1.clientY
+                );
+                // 保存当前缩放比例作为初始值
+                this.touchState.initialScale = this.imageScale;
+
+                console.log('双指开始 - 初始缩放:', this.touchState.initialScale, '初始距离:', this.touchState.initialDistance);
+            } else if (e.touches.length === 1) {
+                // 单指操作
+                if (this.imageScale > 1) {
+                    // 如果已经缩放,则可以拖动
+                    this.isDragging = true;
+                    this.startX = e.touches[0].clientX - this.imageTranslateX;
+                    this.startY = e.touches[0].clientY - this.imageTranslateY;
+                }
+            }
+        }, { passive: false });
+
+        this.fullscreenImage.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2 && this.touchState.isPinching) {
+                // 双指缩放中
+                e.preventDefault();
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+
+                // 计算当前距离
+                const currentDistance = Math.hypot(
+                    touch2.clientX - touch1.clientX,
+                    touch2.clientY - touch1.clientY
+                );
+
+                // 计算新的缩放比例 = (当前距离 / 初始距离) * 初始缩放比例
+                const newScale = (currentDistance / this.touchState.initialDistance) * this.touchState.initialScale;
+                this.imageScale = Math.max(0.5, Math.min(5, newScale));
+
+                this.updateImageTransform();
+            } else if (e.touches.length === 1 && this.isDragging && !this.touchState.isPinching) {
+                // 单指拖动
+                e.preventDefault();
+                this.imageTranslateX = e.touches[0].clientX - this.startX;
+                this.imageTranslateY = e.touches[0].clientY - this.startY;
+                this.updateImageTransform();
+            }
+        }, { passive: false });
+
+        this.fullscreenImage.addEventListener('touchend', (e) => {
+            const touchDuration = Date.now() - this.touchState.touchStartTime;
+            console.log('touchend - 剩余手指:', e.touches.length, '当前缩放:', this.imageScale, '持续时间:', touchDuration);
+
+            // 检测双击(只在快速点击时)
+            if (touchDuration < 300) {
+                const currentTime = Date.now();
+                const tapLength = currentTime - this.touchState.lastTap;
+
+                if (tapLength < 300 && tapLength > 0 && e.touches.length === 0) {
+                    // 双击重置
+                    if (this.imageScale === 1) {
+                        this.imageScale = 2;
+                    } else {
+                        this.imageScale = 1;
+                        this.imageTranslateX = 0;
+                        this.imageTranslateY = 0;
+                    }
+                    this.updateImageTransform();
+                    console.log('双击 - 新缩放:', this.imageScale);
+                }
+                this.touchState.lastTap = currentTime;
+            }
+
+            // 重置状态
+            if (e.touches.length === 0) {
+                // 所有手指都离开屏幕 - 保持缩放状态
+                this.isDragging = false;
+                this.touchState.isPinching = false;
+                console.log('所有手指离开 - 保持缩放:', this.imageScale);
+            } else if (e.touches.length === 1) {
+                // 还有一个手指在屏幕上
+                this.touchState.isPinching = false;
+                // 如果图片已缩放,准备拖动
+                if (this.imageScale > 1) {
+                    this.isDragging = true;
+                    this.startX = e.touches[0].clientX - this.imageTranslateX;
+                    this.startY = e.touches[0].clientY - this.imageTranslateY;
+                }
+                console.log('一指离开 - 切换到拖动模式');
+            }
+        });
+
+        // 双击重置(PC)
+        this.fullscreenImage.addEventListener('dblclick', () => {
+            if (this.imageScale === 1) {
+                this.imageScale = 2;
+            } else {
+                this.imageScale = 1;
+                this.imageTranslateX = 0;
+                this.imageTranslateY = 0;
+            }
+            this.updateImageTransform();
+        });
+    }
+
+    // 更新图片变换
+    updateImageTransform() {
+        // 使用transform实现平滑的缩放和移动
+        const transform = `translate(${this.imageTranslateX}px, ${this.imageTranslateY}px) scale(${this.imageScale})`;
+        this.fullscreenImage.style.transform = transform;
+
+        console.log('更新变换 - 缩放:', this.imageScale, 'Transform:', transform);
+
+        // 更新光标
+        if (this.imageScale > 1) {
+            this.fullscreenImage.style.cursor = this.isDragging ? 'grabbing' : 'grab';
+        } else {
+            this.fullscreenImage.style.cursor = 'zoom-in';
+        }
+    }
+
+    // 缩放图片
+    zoomImage(delta) {
+        const newScale = Math.max(0.5, Math.min(5, this.imageScale + delta));
+        this.imageScale = newScale;
+        this.updateImageTransform();
+    }
+
+    // 重置缩放
+    resetZoom() {
+        this.imageScale = 1;
+        this.imageTranslateX = 0;
+        this.imageTranslateY = 0;
+        this.updateImageTransform();
     }
 
     // 隐藏图片预览
@@ -634,7 +833,7 @@ class UIManager {
                                     <img
                                         src="${thumbnailUrl}"
                                         alt="历史图片"
-                                        onclick="ui.showImagePreview('${this.escapeHtml(originalUrl)}')"
+                                        onclick="ui.showImagePreview('${this.escapeHtml(originalUrl)}', '${this.escapeHtml(thumbnailUrl)}')"
                                         onload="this.previousElementSibling.style.display='none'"
                                         onerror="this.previousElementSibling.style.display='none'; this.src='${this.escapeHtml(originalUrl)}'">
                                 </div>
@@ -915,10 +1114,18 @@ class UIManager {
         return `${baseUrl}/api/proxy/image?url=${encodeURIComponent(imageInfo)}`;
     }
 
-    // 获取原图URL
+    // 获取原图URL(优先使用本地)
     getOriginalImageUrl(imageInfo) {
+        const serverUrl = localStorage.getItem('dreamina_server_url') || '';
+        const baseUrl = serverUrl || window.location.origin;
+
         if (typeof imageInfo === 'object') {
-            return imageInfo.original || imageInfo.local;
+            // 优先使用本地原图(局域网速度快)
+            if (imageInfo.local) {
+                return `${baseUrl}/api/images/${imageInfo.local}`;
+            }
+            // 降级到远程URL
+            return imageInfo.original;
         }
         return imageInfo;
     }
