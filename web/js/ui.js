@@ -80,6 +80,12 @@ class UIManager {
         this.closeImagePreview = document.getElementById('closeImagePreview');
         this.previewImage = document.getElementById('previewImage');
         this.downloadImage = document.getElementById('downloadImage');
+
+        // 全屏图片查看器
+        this.fullscreenViewer = document.getElementById('fullscreenViewer');
+        this.fullscreenImage = document.getElementById('fullscreenImage');
+        this.fullscreenClose = document.getElementById('fullscreenClose');
+        this.fullscreenDownload = document.getElementById('fullscreenDownload');
         
         // 生成按钮
         this.generateBtn = document.getElementById('generateBtn');
@@ -124,6 +130,14 @@ class UIManager {
 
         // 图片预览
         this.closeImagePreview.addEventListener('click', () => this.hideImagePreview());
+
+        // 全屏查看器
+        this.fullscreenClose.addEventListener('click', () => this.hideFullscreenViewer());
+        this.fullscreenViewer.addEventListener('click', (e) => {
+            if (e.target === this.fullscreenViewer) {
+                this.hideFullscreenViewer();
+            }
+        });
 
         // 初始化图片上传框
         this.initImageUploadBoxes();
@@ -495,9 +509,39 @@ class UIManager {
         };
         this.imagePreviewModal.classList.add('active');
 
+        // 点击图片打开全屏查看器
+        this.previewImage.onclick = () => {
+            this.showFullscreenViewer(imageUrl);
+        };
+
+        // 设置图片样式为可点击
+        this.previewImage.style.cursor = 'pointer';
+
         this.downloadImage.onclick = () => {
             api.downloadImage(imageUrl, `dreamina_${Date.now()}.png`);
         };
+    }
+
+    // 显示全屏图片查看器
+    showFullscreenViewer(imageUrl) {
+        // 直接使用原图URL,不使用代理
+        this.fullscreenImage.src = imageUrl;
+
+        this.fullscreenViewer.classList.add('active');
+
+        // 下载按钮
+        this.fullscreenDownload.onclick = () => {
+            api.downloadImage(imageUrl, `dreamina_${Date.now()}.png`);
+        };
+
+        // 阻止body滚动
+        document.body.style.overflow = 'hidden';
+    }
+
+    // 隐藏全屏图片查看器
+    hideFullscreenViewer() {
+        this.fullscreenViewer.classList.remove('active');
+        document.body.style.overflow = '';
     }
 
     // 隐藏图片预览

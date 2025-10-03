@@ -279,6 +279,23 @@
         <i class="fas fa-arrow-up"></i>
     </button>
 
+    <!-- 全屏图片查看器 -->
+    <div class="fullscreen-viewer" id="fullscreenViewer">
+        <div class="fullscreen-viewer-header">
+            <button class="fullscreen-close" id="fullscreenClose" title="关闭">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="fullscreen-viewer-content">
+            <img id="fullscreenImage" src="" alt="全屏查看">
+        </div>
+        <div class="fullscreen-viewer-footer">
+            <button class="btn btn-primary" id="fullscreenDownload">
+                <i class="fas fa-download"></i> 下载
+            </button>
+        </div>
+    </div>
+
     <!-- 模态框 - 添加账号 -->
     <div class="modal" id="addAccountModal">
         <div class="modal-content">
@@ -315,7 +332,10 @@
                 </button>
             </div>
             <div class="modal-body">
-                <img id="previewImage" src="" alt="预览图片">
+                <img id="previewImage" src="" alt="预览图片" title="点击查看大图">
+                <div class="preview-hint">
+                    <i class="fas fa-info-circle"></i> 点击图片查看大图
+                </div>
                 <div class="image-actions">
                     <button class="btn btn-primary" id="downloadImage">
                         <i class="fas fa-download"></i> 下载
