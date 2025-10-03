@@ -2,7 +2,15 @@
 const CONFIG = {
     // API 基础配置
     api: {
-        baseUrl: 'http://localhost:5000/api',  // 后端API地址
+        get baseUrl() {
+            // 从 localStorage 获取用户自定义的服务器地址
+            const customServer = localStorage.getItem('dreamina_server_url');
+            if (customServer && customServer.trim()) {
+                return customServer.trim() + '/api';
+            }
+            // 默认使用相对路径（自动适配当前域名）
+            return '/api';
+        },
         timeout: 30000,
     },
     

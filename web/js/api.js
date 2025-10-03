@@ -146,19 +146,27 @@ class StorageManager {
 
     // 获取账号列表（从服务器）
     async getAccounts() {
+        console.log('[Storage] 开始获取账号列表...');
+        console.log('[Storage] API URL:', `${CONFIG.api.baseUrl}/accounts`);
+
         try {
             const response = await fetch(`${CONFIG.api.baseUrl}/accounts`);
+            console.log('[Storage] Response status:', response.status);
+
             const data = await response.json();
+            console.log('[Storage] Response data:', data);
 
             if (data.success) {
                 this.accountsCache = data.accounts;
+                console.log('[Storage] 账号缓存已更新:', this.accountsCache);
                 return data.accounts;
             } else {
-                console.error('获取账号列表失败:', data.message);
+                console.error('[Storage] 获取账号列表失败:', data.message);
                 return [];
             }
         } catch (error) {
-            console.error('获取账号列表失败:', error);
+            console.error('[Storage] 获取账号列表异常:', error);
+            console.error('[Storage] Error stack:', error.stack);
             return [];
         }
     }

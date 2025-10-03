@@ -91,12 +91,23 @@ def init_components():
 @app.route('/')
 def index():
     """返回主页"""
-    return send_from_directory('.', 'index.html')
+    response = send_from_directory('.', 'index.html')
+    # 禁用缓存，确保总是获取最新版本
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 @app.route('/<path:path>')
 def static_files(path):
     """返回静态文件"""
-    return send_from_directory('.', path)
+    response = send_from_directory('.', path)
+    # 对 JS 和 CSS 文件禁用缓存
+    if path.endswith('.js') or path.endswith('.css'):
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    return response
 
 # API 路由
 
@@ -607,18 +618,36 @@ def check_status(task_id):
                 'completed': True,
                 'images': result
             })
+        elif result is None:
+            # 返回 None 表示任务不存在或已失败
+            return jsonify({
+                'success': True,
+                'completed': False,
+                'failed': True,
+                'error': '任务不存在或生成失败'
+            })
         else:
             return jsonify({
                 'success': True,
                 'completed': False,
+                'failed': False,
                 'message': '正在生成中...'
             })
 
     except Exception as e:
         logger.error(f"查询状态失败: {e}")
+        # 检查是否是 API 错误
+        error_msg = str(e)
+        if 'invalid parameter' in error_msg.lower() or 'not found' in error_msg.lower():
+            return jsonify({
+                'success': True,
+                'completed': False,
+                'failed': True,
+                'error': error_msg
+            })
         return jsonify({
             'success': False,
-            'message': str(e)
+            'message': error_msg
         }), 500
 
 @app.route('/api/proxy/image', methods=['GET'])

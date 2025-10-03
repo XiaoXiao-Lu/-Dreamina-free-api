@@ -58,7 +58,12 @@ class UIManager {
         this.giftCredit = document.getElementById('giftCredit');
         this.purchaseCredit = document.getElementById('purchaseCredit');
         this.refreshCreditBtn = document.getElementById('refreshCreditBtn');
-        
+
+        // 服务器设置
+        this.serverUrl = document.getElementById('serverUrl');
+        this.saveServerUrl = document.getElementById('saveServerUrl');
+        this.resetServerUrl = document.getElementById('resetServerUrl');
+
         // Toast和加载
         this.toast = document.getElementById('toast');
         this.loadingOverlay = document.getElementById('loadingOverlay');
@@ -105,12 +110,19 @@ class UIManager {
         
         // 积分刷新
         this.refreshCreditBtn.addEventListener('click', () => this.refreshCredit());
-        
+
+        // 服务器设置
+        this.saveServerUrl.addEventListener('click', () => this.handleSaveServerUrl());
+        this.resetServerUrl.addEventListener('click', () => this.handleResetServerUrl());
+
         // 图片预览
         this.closeImagePreview.addEventListener('click', () => this.hideImagePreview());
-        
+
         // 初始化图片上传框
         this.initImageUploadBoxes();
+
+        // 加载服务器设置
+        this.loadServerUrl();
     }
 
     // 切换侧边栏
@@ -252,30 +264,43 @@ class UIManager {
 
     // 渲染账号列表
     async renderAccountList() {
-        const accounts = await storage.getAccounts();
-        const currentAccount = storage.getCurrentAccount();
-        
-        if (accounts.length === 0) {
-            this.accountList.innerHTML = '<p class="empty-text">暂无账号</p>';
-            return;
+        console.log('[UI] 开始渲染账号列表...');
+
+        try {
+            console.log('[UI] 调用 storage.getAccounts()...');
+            const accounts = await storage.getAccounts();
+            console.log('[UI] 获取到账号:', accounts);
+
+            const currentAccount = storage.getCurrentAccount();
+            console.log('[UI] 当前账号:', currentAccount);
+
+            if (accounts.length === 0) {
+                console.warn('[UI] 账号列表为空');
+                this.accountList.innerHTML = '<p class="empty-text">暂无账号</p>';
+                return;
+            }
+
+            console.log('[UI] 渲染', accounts.length, '个账号');
+            this.accountList.innerHTML = accounts.map(account => `
+                <div class="account-item ${currentAccount && currentAccount.id === account.id ? 'active' : ''}" data-id="${account.id}">
+                    <div class="account-info">
+                        <div class="account-name">${account.description}</div>
+                        <div class="account-status">SessionID: ${account.sessionId.substring(0, 20)}...</div>
+                    </div>
+                    <div class="account-actions">
+                        <button onclick="ui.switchAccount('${account.id}')">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        <button onclick="ui.deleteAccount('${account.id}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            console.log('[UI] 账号列表渲染完成');
+        } catch (error) {
+            console.error('[UI] 渲染账号列表失败:', error);
         }
-        
-        this.accountList.innerHTML = accounts.map(account => `
-            <div class="account-item ${currentAccount?.id === account.id ? 'active' : ''}" data-id="${account.id}">
-                <div class="account-info">
-                    <div class="account-name">${account.description}</div>
-                    <div class="account-status">SessionID: ${account.sessionId.substring(0, 20)}...</div>
-                </div>
-                <div class="account-actions">
-                    <button onclick="ui.switchAccount('${account.id}')">
-                        <i class="fas fa-check"></i>
-                    </button>
-                    <button onclick="ui.deleteAccount('${account.id}')">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-        `).join('');
     }
 
     // 切换账号
@@ -446,13 +471,57 @@ class UIManager {
     loadHistoryItem(itemId) {
         const history = storage.getHistory();
         const item = history.find(h => h.id === itemId);
-        
+
         if (item) {
             this.promptInput.value = item.prompt;
             this.modelSelect.value = item.model;
             this.resolutionSelect.value = item.resolution;
             this.ratioSelect.value = item.ratio;
             this.showToast('已加载历史记录', 'success');
+        }
+    }
+
+    // 加载服务器地址设置
+    loadServerUrl() {
+        const savedUrl = localStorage.getItem('dreamina_server_url');
+        if (savedUrl) {
+            this.serverUrl.value = savedUrl;
+        }
+    }
+
+    // 保存服务器地址
+    handleSaveServerUrl() {
+        const url = this.serverUrl.value.trim();
+
+        // 验证 URL 格式
+        if (url && !url.match(/^https?:\/\/.+/)) {
+            this.showToast('请输入有效的服务器地址（例如: http://192.168.3.68:5000）', 'error');
+            return;
+        }
+
+        // 移除末尾的斜杠
+        const cleanUrl = url.replace(/\/$/, '');
+
+        localStorage.setItem('dreamina_server_url', cleanUrl);
+        this.showToast('服务器地址已保存，请刷新页面生效', 'success');
+
+        // 3秒后自动刷新页面
+        setTimeout(() => {
+            window.location.reload();
+        }, 3000);
+    }
+
+    // 重置服务器地址
+    handleResetServerUrl() {
+        if (confirm('确定要恢复默认服务器设置吗？')) {
+            localStorage.removeItem('dreamina_server_url');
+            this.serverUrl.value = '';
+            this.showToast('已恢复默认设置，请刷新页面生效', 'success');
+
+            // 3秒后自动刷新页面
+            setTimeout(() => {
+                window.location.reload();
+            }, 3000);
         }
     }
 }

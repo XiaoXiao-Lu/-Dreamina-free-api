@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手机调试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: monospace;
+            padding: 10px;
+            background: #f5f5f5;
+            font-size: 12px;
+        }
+        .log {
+            background: white;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            word-break: break-all;
+        }
+        .error {
+            background: #fee;
+            color: #c00;
+        }
+        .success {
+            background: #efe;
+            color: #060;
+        }
+        .info {
+            background: #eef;
+            color: #006;
+        }
+        h1 {
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            width: 100%;
+            margin: 5px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>📱 手机调试工具</h1>
+    <div id="logs"></div>
+    <button onclick="testAll()">🔄 重新测试</button>
+
+    <script>
+        const logs = [];
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            logs.push({ timestamp, message, type });
+            render();
+            console.log(`[${type}] ${message}`);
+        }
+        
+        function render() {
+            const container = document.getElementById('logs');
+            container.innerHTML = logs.map(l => 
+                `<div class="log ${l.type}">[${l.timestamp}] ${l.message}</div>`
+            ).join('');
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        // 捕获所有错误
+        window.onerror = function(msg, url, line, col, error) {
+            log(`❌ JS错误: ${msg} (${url}:${line}:${col})`, 'error');
+            if (error && error.stack) {
+                log(`Stack: ${error.stack}`, 'error');
+            }
+            return false;
+        };
+        
+        window.onunhandledrejection = function(event) {
+            log(`❌ Promise错误: ${event.reason}`, 'error');
+        };
+        
+        async function testAll() {
+            logs.length = 0;
+            log('🚀 开始测试...', 'info');
+            
+            // 1. 浏览器信息
+            log(`📱 User Agent: ${navigator.userAgent}`, 'info');
+            log(`📱 屏幕: ${window.innerWidth}x${window.innerHeight}`, 'info');
+            
+            // 2. 测试 ES6 特性
+            log('--- 测试 ES6 特性 ---', 'info');
+            
+            try {
+                // 测试 async/await
+                const testAsync = async () => 'async works';
+                await testAsync();
+                log('✅ async/await 支持', 'success');
+            } catch (e) {
+                log('❌ async/await 不支持: ' + e.message, 'error');
+            }
+            
+            try {
+                // 测试箭头函数
+                const testArrow = () => 'arrow works';
+                testArrow();
+                log('✅ 箭头函数支持', 'success');
+            } catch (e) {
+                log('❌ 箭头函数不支持: ' + e.message, 'error');
+            }
+            
+            try {
+                // 测试模板字符串
+                const test = `template ${1+1}`;
+                log('✅ 模板字符串支持', 'success');
+            } catch (e) {
+                log('❌ 模板字符串不支持: ' + e.message, 'error');
+            }
+            
+            try {
+                // 测试 fetch
+                if (typeof fetch !== 'undefined') {
+                    log('✅ fetch API 支持', 'success');
+                } else {
+                    log('❌ fetch API 不支持', 'error');
+                }
+            } catch (e) {
+                log('❌ fetch API 检测失败: ' + e.message, 'error');
+            }
+            
+            try {
+                // 测试 Promise
+                if (typeof Promise !== 'undefined') {
+                    log('✅ Promise 支持', 'success');
+                } else {
+                    log('❌ Promise 不支持', 'error');
+                }
+            } catch (e) {
+                log('❌ Promise 检测失败: ' + e.message, 'error');
+            }
+            
+            try {
+                // 测试 class
+                class TestClass {}
+                log('✅ class 支持', 'success');
+            } catch (e) {
+                log('❌ class 不支持: ' + e.message, 'error');
+            }
+            
+            // 3. 测试 localStorage
+            log('--- 测试 localStorage ---', 'info');
+            try {
+                localStorage.setItem('test', 'value');
+                const val = localStorage.getItem('test');
+                if (val === 'value') {
+                    log('✅ localStorage 支持', 'success');
+                } else {
+                    log('❌ localStorage 读写异常', 'error');
+                }
+                localStorage.removeItem('test');
+            } catch (e) {
+                log('❌ localStorage 不支持: ' + e.message, 'error');
+            }
+            
+            // 4. 测试加载 config.js
+            log('--- 测试加载 config.js ---', 'info');
+            try {
+                const script = document.createElement('script');
+                script.src = '/js/config.js?v=6';
+                script.onload = function() {
+                    log('✅ config.js 加载成功', 'success');
+                    
+                    // 检查 CONFIG 对象
+                    if (typeof CONFIG !== 'undefined') {
+                        log('✅ CONFIG 对象存在', 'success');
+                        log(`CONFIG.api.baseUrl = ${CONFIG.api.baseUrl}`, 'info');
+                    } else {
+                        log('❌ CONFIG 对象不存在', 'error');
+                    }
+                    
+                    // 继续测试 API
+                    testAPI();
+                };
+                script.onerror = function() {
+                    log('❌ config.js 加载失败', 'error');
+                };
+                document.head.appendChild(script);
+            } catch (e) {
+                log('❌ 加载 config.js 异常: ' + e.message, 'error');
+            }
+        }
+        
+        async function testAPI() {
+            log('--- 测试 API 调用 ---', 'info');
+            
+            try {
+                log('发送请求: /api/accounts', 'info');
+                const response = await fetch('/api/accounts');
+                log(`响应状态: ${response.status}`, 'info');
+                
+                const text = await response.text();
+                log(`响应内容: ${text.substring(0, 200)}`, 'info');
+                
+                const data = JSON.parse(text);
+                
+                if (data.success) {
+                    log(`✅ API 调用成功，获取到 ${data.accounts.length} 个账号`, 'success');
+                    data.accounts.forEach((acc, i) => {
+                        log(`账号 ${i+1}: ${acc.description} (${acc.sessionId.substring(0, 20)}...)`, 'info');
+                    });
+                } else {
+                    log(`❌ API 返回失败: ${data.message}`, 'error');
+                }
+            } catch (e) {
+                log(`❌ API 调用异常: ${e.message}`, 'error');
+                log(`Stack: ${e.stack}`, 'error');
+            }
+            
+            // 测试加载 api.js
+            log('--- 测试加载 api.js ---', 'info');
+            try {
+                const script = document.createElement('script');
+                script.src = '/js/api.js?v=6';
+                script.onload = function() {
+                    log('✅ api.js 加载成功', 'success');
+                    
+                    // 检查 storage 对象
+                    if (typeof storage !== 'undefined') {
+                        log('✅ storage 对象存在', 'success');
+                        testStorage();
+                    } else {
+                        log('❌ storage 对象不存在', 'error');
+                    }
+                };
+                script.onerror = function() {
+                    log('❌ api.js 加载失败', 'error');
+                };
+                document.head.appendChild(script);
+            } catch (e) {
+                log('❌ 加载 api.js 异常: ' + e.message, 'error');
+            }
+        }
+        
+        async function testStorage() {
+            log('--- 测试 StorageManager ---', 'info');
+            
+            try {
+                log('调用 storage.getAccounts()...', 'info');
+                const accounts = await storage.getAccounts();
+                log(`✅ storage.getAccounts() 成功，获取到 ${accounts.length} 个账号`, 'success');
+                
+                const currentAccount = storage.getCurrentAccount();
+                if (currentAccount) {
+                    log(`✅ 当前账号: ${currentAccount.description}`, 'success');
+                } else {
+                    log('⚠️ 没有当前账号', 'info');
+                }
+            } catch (e) {
+                log(`❌ StorageManager 测试失败: ${e.message}`, 'error');
+                log(`Stack: ${e.stack}`, 'error');
+            }
+        }
+        
+        // 页面加载时自动测试
+        window.onload = function() {
+            testAll();
+        };
+    </script>
+</body>
+</html>
+

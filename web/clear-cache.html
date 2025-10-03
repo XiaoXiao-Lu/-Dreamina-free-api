@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>清除缓存 - Dreamina AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section h2 {
+            color: #333;
+            font-size: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .section h2::before {
+            content: "📱";
+            margin-right: 10px;
+            font-size: 24px;
+        }
+
+        .steps {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .step {
+            margin-bottom: 15px;
+            padding-left: 30px;
+            position: relative;
+        }
+
+        .step::before {
+            content: attr(data-step);
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: #667eea;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .step:last-child {
+            margin-bottom: 0;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .success {
+            background: #10b981;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+            text-align: center;
+        }
+
+        .success.show {
+            display: block;
+        }
+
+        .info {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        .version {
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 清除浏览器缓存</h1>
+        <p class="subtitle">更新后需要清除缓存才能看到最新功能</p>
+
+        <!-- iPhone Safari -->
+        <div class="section">
+            <h2>iPhone Safari</h2>
+            <div class="steps">
+                <div class="step" data-step="1">打开"设置"应用</div>
+                <div class="step" data-step="2">向下滚动，找到"Safari"</div>
+                <div class="step" data-step="3">点击"清除历史记录与网站数据"</div>
+                <div class="step" data-step="4">确认清除</div>
+                <div class="step" data-step="5">返回浏览器，刷新页面</div>
+            </div>
+        </div>
+
+        <!-- Android Chrome -->
+        <div class="section">
+            <h2>Android Chrome</h2>
+            <div class="steps">
+                <div class="step" data-step="1">打开 Chrome 浏览器</div>
+                <div class="step" data-step="2">点击右上角三个点</div>
+                <div class="step" data-step="3">选择"历史记录"</div>
+                <div class="step" data-step="4">点击"清除浏览数据"</div>
+                <div class="step" data-step="5">选择"缓存的图片和文件"</div>
+                <div class="step" data-step="6">点击"清除数据"</div>
+            </div>
+        </div>
+
+        <!-- 快速方法 -->
+        <div class="section">
+            <h2>⚡ 快速方法</h2>
+            <div class="steps">
+                <div class="step" data-step="1">在浏览器地址栏输入当前页面地址</div>
+                <div class="step" data-step="2">在地址后面添加 <code>?t=<span id="timestamp"></span></code></div>
+                <div class="step" data-step="3">按回车访问</div>
+            </div>
+            <button class="btn" onclick="openWithTimestamp()">🚀 自动跳转（推荐）</button>
+        </div>
+
+        <div class="info">
+            <strong>💡 提示：</strong>如果清除缓存后仍然看不到新功能，请尝试关闭浏览器后重新打开。
+        </div>
+
+        <div class="success" id="success">
+            ✅ 正在跳转到最新版本...
+        </div>
+
+        <div class="version">
+            当前版本: v4.0 | 更新时间: 2025-10-03
+        </div>
+    </div>
+
+    <script>
+        // 显示当前时间戳
+        document.getElementById('timestamp').textContent = Date.now();
+
+        // 自动跳转到带时间戳的主页
+        function openWithTimestamp() {
+            const timestamp = Date.now();
+            const baseUrl = window.location.origin;
+            const newUrl = `${baseUrl}/?t=${timestamp}`;
+            
+            document.getElementById('success').classList.add('show');
+            
+            setTimeout(() => {
+                window.location.href = newUrl;
+            }, 1000);
+        }
+
+        // 检测是否是移动设备
+        function isMobile() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+
+        // 如果是移动设备，显示提示
+        if (isMobile()) {
+            console.log('检测到移动设备');
+        }
+    </script>
+</body>
+</html>
+

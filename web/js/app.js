@@ -2,7 +2,8 @@
 class DreaminaApp {
     constructor() {
         this.currentMode = 't2i';
-        this.isGenerating = false;
+        this.activeTasks = new Map(); // 存储活跃的生成任务
+        this.taskIdCounter = 0; // 任务ID计数器
         this.init();
     }
 
@@ -15,19 +16,38 @@ class DreaminaApp {
 
     // 加载初始数据
     async loadInitialData() {
-        await ui.renderAccountList();
-        ui.renderHistory();
+        console.log('[App] 开始加载初始数据...');
 
-        const currentAccount = storage.getCurrentAccount();
-        if (currentAccount) {
-            ui.refreshCredit();
+        try {
+            console.log('[App] 渲染账号列表...');
+            await ui.renderAccountList();
+            console.log('[App] 账号列表渲染完成');
+
+            console.log('[App] 渲染历史记录...');
+            ui.renderHistory();
+            console.log('[App] 历史记录渲染完成');
+
+            const currentAccount = storage.getCurrentAccount();
+            console.log('[App] 当前账号:', currentAccount);
+
+            if (currentAccount) {
+                console.log('[App] 刷新积分...');
+                ui.refreshCredit();
+            } else {
+                console.warn('[App] 没有当前账号');
+            }
+
+            // 加载保存的设置
+            const settings = storage.getSettings();
+            console.log('[App] 加载设置:', settings);
+            ui.modelSelect.value = settings.model || CONFIG.defaults.model;
+            ui.resolutionSelect.value = settings.resolution || CONFIG.defaults.resolution;
+            ui.ratioSelect.value = settings.ratio || CONFIG.defaults.ratio;
+
+            console.log('[App] 初始数据加载完成');
+        } catch (error) {
+            console.error('[App] 加载初始数据失败:', error);
         }
-
-        // 加载保存的设置
-        const settings = storage.getSettings();
-        ui.modelSelect.value = settings.model || CONFIG.defaults.model;
-        ui.resolutionSelect.value = settings.resolution || CONFIG.defaults.resolution;
-        ui.ratioSelect.value = settings.ratio || CONFIG.defaults.ratio;
     }
 
     // 设置表单提交

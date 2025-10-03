@@ -63,6 +63,24 @@
                 </button>
             </div>
 
+            <!-- 服务器设置 -->
+            <div class="setting-section">
+                <h3><i class="fas fa-server"></i> 服务器设置</h3>
+                <div class="form-group">
+                    <label for="serverUrl">服务器地址</label>
+                    <input type="text" id="serverUrl" class="form-control" placeholder="例如: http://192.168.3.68:5000">
+                    <small style="color: #999; font-size: 12px; margin-top: 5px; display: block;">
+                        留空则使用当前访问地址
+                    </small>
+                </div>
+                <button class="btn btn-primary" id="saveServerUrl">
+                    <i class="fas fa-save"></i> 保存设置
+                </button>
+                <button class="btn btn-secondary" id="resetServerUrl" style="margin-top: 5px;">
+                    <i class="fas fa-undo"></i> 恢复默认
+                </button>
+            </div>
+
             <!-- 关于 -->
             <div class="setting-section">
                 <h3><i class="fas fa-info-circle"></i> 关于</h3>
@@ -287,10 +305,10 @@
         </div>
     </div>
 
-    <script src="js/config.js?v=4"></script>
-    <script src="js/api.js?v=4"></script>
-    <script src="js/ui.js?v=4"></script>
-    <script src="js/app.js?v=4"></script>
+    <script src="js/config.js?v=8"></script>
+    <script src="js/api.js?v=8"></script>
+    <script src="js/ui.js?v=8"></script>
+    <script src="js/app.js?v=8"></script>
 </body>
 </html>
 
