@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API 测试工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0f172a;
+            color: #f1f5f9;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            color: #6366f1;
+        }
+
+        .test-section {
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .test-section h2 {
+            margin-bottom: 15px;
+            color: #94a3b8;
+            font-size: 18px;
+        }
+
+        button {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            background: #4f46e5;
+        }
+
+        button:disabled {
+            background: #475569;
+            cursor: not-allowed;
+        }
+
+        .result {
+            background: #0f172a;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .success {
+            color: #10b981;
+        }
+
+        .error {
+            color: #ef4444;
+        }
+
+        .info {
+            color: #3b82f6;
+        }
+
+        .loading {
+            color: #f59e0b;
+        }
+
+        input, textarea {
+            width: 100%;
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: #f1f5f9;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-family: inherit;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #94a3b8;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Dreamina AI API 测试工具</h1>
+
+        <div class="test-section">
+            <h2>1. 健康检查</h2>
+            <button onclick="testHealth()">测试健康检查</button>
+            <div id="health-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>2. 获取账号列表</h2>
+            <button onclick="testAccounts()">获取账号</button>
+            <div id="accounts-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>3. 文生图测试</h2>
+            <label>提示词:</label>
+            <textarea id="t2i-prompt" rows="3">一只可爱的橘猫，坐在窗台上，阳光洒在身上</textarea>
+            <button onclick="testT2I()">开始生成</button>
+            <div id="t2i-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>4. 查看生成的图片</h2>
+            <div id="images-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 15px;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type;
+            element.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            element.scrollTop = element.scrollHeight;
+        }
+
+        function clearLog(elementId) {
+            document.getElementById(elementId).innerHTML = '';
+        }
+
+        async function testHealth() {
+            clearLog('health-result');
+            log('health-result', '正在测试健康检查...', 'loading');
+
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                
+                log('health-result', '✅ 服务器正常运行', 'success');
+                log('health-result', JSON.stringify(data, null, 2), 'info');
+            } catch (error) {
+                log('health-result', '❌ 连接失败: ' + error.message, 'error');
+                log('health-result', '请确保服务器已启动 (python server.py)', 'error');
+            }
+        }
+
+        async function testAccounts() {
+            clearLog('accounts-result');
+            log('accounts-result', '正在获取账号列表...', 'loading');
+
+            try {
+                const response = await fetch(`${API_BASE}/accounts`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    log('accounts-result', `✅ 找到 ${data.accounts.length} 个账号`, 'success');
+                    log('accounts-result', JSON.stringify(data, null, 2), 'info');
+                } else {
+                    log('accounts-result', '❌ 获取失败: ' + data.message, 'error');
+                }
+            } catch (error) {
+                log('accounts-result', '❌ 请求失败: ' + error.message, 'error');
+            }
+        }
+
+        async function testT2I() {
+            clearLog('t2i-result');
+            const prompt = document.getElementById('t2i-prompt').value;
+
+            if (!prompt.trim()) {
+                log('t2i-result', '❌ 请输入提示词', 'error');
+                return;
+            }
+
+            log('t2i-result', '正在提交文生图任务...', 'loading');
+            log('t2i-result', `提示词: ${prompt}`, 'info');
+
+            try {
+                const response = await fetch(`${API_BASE}/generate/t2i`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        prompt: prompt,
+                        model: '3.0',
+                        resolution: '2k',
+                        ratio: '1:1',
+                        seed: -1,
+                        num_images: 4
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    log('t2i-result', '✅ 任务提交成功', 'success');
+                    
+                    if (data.completed && data.images) {
+                        log('t2i-result', `✅ 生成完成！共 ${data.images.length} 张图片`, 'success');
+                        displayImages(data.images);
+                        log('t2i-result', JSON.stringify(data, null, 2), 'info');
+                    } else if (data.taskId) {
+                        log('t2i-result', `⏳ 任务ID: ${data.taskId}`, 'loading');
+                        log('t2i-result', '正在轮询状态...', 'loading');
+                        await pollStatus(data.taskId);
+                    }
+                } else {
+                    log('t2i-result', '❌ 生成失败: ' + data.message, 'error');
+                }
+            } catch (error) {
+                log('t2i-result', '❌ 请求失败: ' + error.message, 'error');
+            }
+        }
+
+        async function pollStatus(taskId) {
+            let attempts = 0;
+            const maxAttempts = 60;
+
+            while (attempts < maxAttempts) {
+                await new Promise(resolve => setTimeout(resolve, 5000));
+                attempts++;
+
+                log('t2i-result', `⏳ 检查状态 (${attempts}/${maxAttempts})...`, 'loading');
+
+                try {
+                    const response = await fetch(`${API_BASE}/generate/status/${taskId}`);
+                    const data = await response.json();
+
+                    if (data.success && data.completed && data.images) {
+                        log('t2i-result', `✅ 生成完成！共 ${data.images.length} 张图片`, 'success');
+                        displayImages(data.images);
+                        log('t2i-result', JSON.stringify(data, null, 2), 'info');
+                        return;
+                    }
+
+                    if (data.failed) {
+                        log('t2i-result', '❌ 生成失败: ' + data.error, 'error');
+                        return;
+                    }
+                } catch (error) {
+                    log('t2i-result', '⚠️ 状态检查失败: ' + error.message, 'error');
+                }
+            }
+
+            log('t2i-result', '❌ 生成超时', 'error');
+        }
+
+        function displayImages(images) {
+            const container = document.getElementById('images-container');
+            container.innerHTML = '';
+
+            images.forEach((url, index) => {
+                const div = document.createElement('div');
+                div.style.cssText = 'background: #1e293b; border-radius: 8px; padding: 10px;';
+                
+                const img = document.createElement('img');
+                img.src = url;
+                img.style.cssText = 'width: 100%; border-radius: 6px; display: block;';
+                img.alt = `生成的图片 ${index + 1}`;
+                
+                const link = document.createElement('a');
+                link.href = url;
+                link.target = '_blank';
+                link.textContent = `图片 ${index + 1}`;
+                link.style.cssText = 'color: #6366f1; text-decoration: none; display: block; margin-top: 8px; font-size: 12px;';
+                
+                div.appendChild(img);
+                div.appendChild(link);
+                container.appendChild(div);
+            });
+        }
+
+        // 页面加载时自动测试健康检查
+        window.addEventListener('load', () => {
+            testHealth();
+        });
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,13 @@
+# Dreamina AI Web 后端依赖
+
+# Web 框架
+Flask>=2.3.0
+Flask-CORS>=4.0.0
+
+# 已在父项目中的依赖（参考）
+# torch>=1.12.0
+# numpy>=1.20.0
+# Pillow>=8.0.0
+# requests>=2.28.0
+# typing-extensions>=4.0.0
+

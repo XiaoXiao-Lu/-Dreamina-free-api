@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>调试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 3px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        img {
+            max-width: 100%;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+        }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Dreamina 调试页面</h1>
+    
+    <div class="section">
+        <h2>1. 测试图片 URL</h2>
+        <p>输入一个 Dreamina 图片 URL 进行测试：</p>
+        <input type="text" id="imageUrl" style="width: 100%; padding: 5px;" 
+               placeholder="https://p16-capcut-va.ibyteimg.com/...">
+        <br><br>
+        <button onclick="testDirectLoad()">直接加载</button>
+        <button onclick="testProxyLoad()">通过代理加载</button>
+        <button onclick="testBoth()">对比测试</button>
+        <div id="imageResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>2. 测试生成接口</h2>
+        <input type="text" id="prompt" style="width: 100%; padding: 5px;" 
+               value="一只可爱的小猫" placeholder="输入提示词">
+        <br><br>
+        <button onclick="testGenerate()">测试生成</button>
+        <div id="generateResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>3. 检查配置</h2>
+        <button onclick="checkConfig()">检查 API 配置</button>
+        <div id="configResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>4. 网络诊断</h2>
+        <button onclick="testNetwork()">测试网络连接</button>
+        <div id="networkResult"></div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        
+        function log(elementId, message, type = 'info') {
+            const el = document.getElementById(elementId);
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : '';
+            el.innerHTML += `<div class="${className}">${new Date().toLocaleTimeString()}: ${message}</div>`;
+        }
+        
+        function clear(elementId) {
+            document.getElementById(elementId).innerHTML = '';
+        }
+        
+        // 测试直接加载图片
+        function testDirectLoad() {
+            clear('imageResult');
+            const url = document.getElementById('imageUrl').value;
+            if (!url) {
+                log('imageResult', '请输入图片 URL', 'error');
+                return;
+            }
+            
+            log('imageResult', '尝试直接加载图片...');
+            const img = document.createElement('img');
+            img.onload = () => log('imageResult', '✅ 直接加载成功！', 'success');
+            img.onerror = () => log('imageResult', '❌ 直接加载失败（CORS 或网络问题）', 'error');
+            img.src = url;
+            document.getElementById('imageResult').appendChild(img);
+        }
+        
+        // 测试代理加载图片
+        function testProxyLoad() {
+            clear('imageResult');
+            const url = document.getElementById('imageUrl').value;
+            if (!url) {
+                log('imageResult', '请输入图片 URL', 'error');
+                return;
+            }
+            
+            const proxyUrl = `${API_BASE}/api/proxy/image?url=${encodeURIComponent(url)}`;
+            log('imageResult', '尝试通过代理加载图片...');
+            log('imageResult', `代理 URL: ${proxyUrl}`);
+            
+            const img = document.createElement('img');
+            img.onload = () => log('imageResult', '✅ 代理加载成功！', 'success');
+            img.onerror = () => log('imageResult', '❌ 代理加载失败', 'error');
+            img.src = proxyUrl;
+            document.getElementById('imageResult').appendChild(img);
+        }
+        
+        // 对比测试
+        function testBoth() {
+            clear('imageResult');
+            const url = document.getElementById('imageUrl').value;
+            if (!url) {
+                log('imageResult', '请输入图片 URL', 'error');
+                return;
+            }
+            
+            log('imageResult', '=== 直接加载 ===');
+            const img1 = document.createElement('img');
+            img1.onload = () => log('imageResult', '✅ 直接加载成功', 'success');
+            img1.onerror = () => log('imageResult', '❌ 直接加载失败', 'error');
+            img1.src = url;
+            document.getElementById('imageResult').appendChild(img1);
+            
+            log('imageResult', '\n=== 代理加载 ===');
+            const proxyUrl = `${API_BASE}/api/proxy/image?url=${encodeURIComponent(url)}`;
+            const img2 = document.createElement('img');
+            img2.onload = () => log('imageResult', '✅ 代理加载成功', 'success');
+            img2.onerror = () => log('imageResult', '❌ 代理加载失败', 'error');
+            img2.src = proxyUrl;
+            document.getElementById('imageResult').appendChild(img2);
+        }
+        
+        // 测试生成接口
+        async function testGenerate() {
+            clear('generateResult');
+            const prompt = document.getElementById('prompt').value;
+            
+            log('generateResult', '开始测试生成...');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/generate/t2i`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        prompt: prompt,
+                        model: '4.0',
+                        ratio: '1:1',
+                        resolution: '2k',
+                        seed: -1,
+                        numImages: 1
+                    })
+                });
+                
+                const data = await response.json();
+                log('generateResult', `响应: ${JSON.stringify(data, null, 2)}`);
+                
+                if (data.success) {
+                    log('generateResult', '✅ 任务提交成功', 'success');
+                    if (data.taskId) {
+                        log('generateResult', `任务 ID: ${data.taskId}`);
+                        pollStatus(data.taskId);
+                    }
+                } else {
+                    log('generateResult', `❌ 失败: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                log('generateResult', `❌ 错误: ${error.message}`, 'error');
+            }
+        }
+        
+        // 轮询状态
+        async function pollStatus(taskId) {
+            log('generateResult', '开始轮询状态...');
+            
+            for (let i = 0; i < 20; i++) {
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                
+                try {
+                    const response = await fetch(`${API_BASE}/api/generate/status/${taskId}`);
+                    const data = await response.json();
+                    
+                    if (data.completed) {
+                        log('generateResult', '✅ 生成完成！', 'success');
+                        log('generateResult', `图片数量: ${data.images.length}`);
+                        
+                        // 显示图片
+                        data.images.forEach((url, index) => {
+                            log('generateResult', `\n图片 ${index + 1}:`);
+                            log('generateResult', `原始 URL: ${url}`);
+                            
+                            const proxyUrl = `${API_BASE}/api/proxy/image?url=${encodeURIComponent(url)}`;
+                            log('generateResult', `代理 URL: ${proxyUrl}`);
+                            
+                            const img = document.createElement('img');
+                            img.onload = () => log('generateResult', `✅ 图片 ${index + 1} 加载成功`, 'success');
+                            img.onerror = () => log('generateResult', `❌ 图片 ${index + 1} 加载失败`, 'error');
+                            img.src = proxyUrl;
+                            document.getElementById('generateResult').appendChild(img);
+                        });
+                        
+                        break;
+                    } else {
+                        log('generateResult', `轮询 ${i + 1}/20: 生成中...`);
+                    }
+                } catch (error) {
+                    log('generateResult', `❌ 轮询错误: ${error.message}`, 'error');
+                    break;
+                }
+            }
+        }
+        
+        // 检查配置
+        async function checkConfig() {
+            clear('configResult');
+            log('configResult', '检查配置...');
+            log('configResult', `API Base: ${API_BASE}`);
+            log('configResult', `当前 URL: ${window.location.href}`);
+            log('configResult', `User Agent: ${navigator.userAgent}`);
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/health`);
+                const data = await response.json();
+                log('configResult', `健康检查: ${JSON.stringify(data, null, 2)}`, 'success');
+            } catch (error) {
+                log('configResult', `❌ 健康检查失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 测试网络
+        async function testNetwork() {
+            clear('networkResult');
+            log('networkResult', '测试网络连接...');
+            
+            // 测试本地服务器
+            try {
+                const response = await fetch(`${API_BASE}/api/health`);
+                log('networkResult', '✅ 本地服务器连接正常', 'success');
+            } catch (error) {
+                log('networkResult', '❌ 本地服务器连接失败', 'error');
+            }
+            
+            // 测试代理接口
+            try {
+                const testUrl = 'https://httpbin.org/image/jpeg';
+                const proxyUrl = `${API_BASE}/api/proxy/image?url=${encodeURIComponent(testUrl)}`;
+                const response = await fetch(proxyUrl);
+                if (response.ok) {
+                    log('networkResult', '✅ 代理接口工作正常', 'success');
+                } else {
+                    log('networkResult', `❌ 代理接口返回: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log('networkResult', `❌ 代理接口测试失败: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>
+

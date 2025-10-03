@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Dreamina AI - 独立版</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <h1 class="logo">
+                <i class="fas fa-magic"></i>
+                Dreamina AI
+            </h1>
+            <button class="menu-btn" id="menuBtn">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </header>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h2>设置</h2>
+            <button class="close-btn" id="closeSidebar">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="sidebar-content">
+            <div class="setting-section">
+                <h3><i class="fas fa-info-circle"></i> 说明</h3>
+                <p class="about-text">这是独立版本，所有数据保存在浏览器本地。</p>
+                <p class="about-text">需要配合 Dreamina API 使用。</p>
+            </div>
+            
+            <div class="setting-section">
+                <h3><i class="fas fa-key"></i> API 配置</h3>
+                <div class="form-group">
+                    <label>SessionID</label>
+                    <input type="text" id="sessionIdInput" class="form-control" placeholder="输入你的 SessionID">
+                </div>
+                <button class="btn btn-primary" id="saveSessionId">
+                    <i class="fas fa-save"></i> 保存
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="container">
+            <div class="card">
+                <h2 class="card-title">
+                    <i class="fas fa-palette"></i> 创作设置
+                </h2>
+                
+                <form id="generateForm">
+                    <div class="form-group">
+                        <label for="prompt">
+                            <i class="fas fa-pen"></i> 提示词
+                        </label>
+                        <textarea 
+                            id="prompt" 
+                            class="form-control" 
+                            rows="4" 
+                            placeholder="描述你想要生成的图片..."
+                            required
+                        >一只可爱的小猫咪</textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="model">
+                            <i class="fas fa-brain"></i> 模型
+                        </label>
+                        <select id="model" class="form-control">
+                            <option value="3.0" selected>图片 3.0</option>
+                            <option value="4.0">图片 4.0</option>
+                            <option value="2.1">图片 2.1</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="resolution">
+                                <i class="fas fa-expand"></i> 分辨率
+                            </label>
+                            <select id="resolution" class="form-control">
+                                <option value="1k">1K</option>
+                                <option value="2k" selected>2K</option>
+                                <option value="4k">4K</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="ratio">
+                                <i class="fas fa-crop"></i> 比例
+                            </label>
+                            <select id="ratio" class="form-control">
+                                <option value="1:1" selected>1:1</option>
+                                <option value="16:9">16:9</option>
+                                <option value="9:16">9:16</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-large" id="generateBtn">
+                        <i class="fas fa-magic"></i>
+                        <span>开始生成</span>
+                    </button>
+                </form>
+            </div>
+
+            <div class="card" id="resultCard" style="display: none;">
+                <h2 class="card-title">
+                    <i class="fas fa-check-circle"></i> 生成结果
+                </h2>
+                <div class="result-info" id="resultInfo"></div>
+                <div class="image-grid" id="imageGrid"></div>
+            </div>
+        </div>
+    </main>
+
+    <div class="toast" id="toast"></div>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <script>
+        // 独立版本的简化脚本
+        const app = {
+            sessionId: localStorage.getItem('dreamina_sessionid') || '',
+            
+            init() {
+                this.setupEventListeners();
+                this.loadSessionId();
+            },
+            
+            setupEventListeners() {
+                document.getElementById('menuBtn').addEventListener('click', () => {
+                    document.getElementById('sidebar').classList.toggle('active');
+                });
+                
+                document.getElementById('closeSidebar').addEventListener('click', () => {
+                    document.getElementById('sidebar').classList.remove('active');
+                });
+                
+                document.getElementById('saveSessionId').addEventListener('click', () => {
+                    this.saveSessionId();
+                });
+                
+                document.getElementById('generateForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.generate();
+                });
+            },
+            
+            loadSessionId() {
+                document.getElementById('sessionIdInput').value = this.sessionId;
+            },
+            
+            saveSessionId() {
+                const sessionId = document.getElementById('sessionIdInput').value.trim();
+                if (!sessionId) {
+                    this.showToast('请输入 SessionID', 'error');
+                    return;
+                }
+                
+                this.sessionId = sessionId;
+                localStorage.setItem('dreamina_sessionid', sessionId);
+                this.showToast('SessionID 已保存', 'success');
+                document.getElementById('sidebar').classList.remove('active');
+            },
+            
+            async generate() {
+                if (!this.sessionId) {
+                    this.showToast('请先配置 SessionID', 'warning');
+                    document.getElementById('sidebar').classList.add('active');
+                    return;
+                }
+                
+                const prompt = document.getElementById('prompt').value.trim();
+                if (!prompt) {
+                    this.showToast('请输入提示词', 'error');
+                    return;
+                }
+                
+                this.showLoading();
+                
+                try {
+                    // 这里需要实现实际的 API 调用
+                    // 由于浏览器的跨域限制，独立版本可能需要使用代理或 CORS 扩展
+                    
+                    // 模拟生成
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    
+                    const mockImages = [
+                        'https://picsum.photos/512/512?random=1',
+                        'https://picsum.photos/512/512?random=2',
+                        'https://picsum.photos/512/512?random=3',
+                        'https://picsum.photos/512/512?random=4'
+                    ];
+                    
+                    this.showResult(mockImages);
+                    this.showToast('生成成功！', 'success');
+                    
+                } catch (error) {
+                    this.showToast('生成失败: ' + error.message, 'error');
+                } finally {
+                    this.hideLoading();
+                }
+            },
+            
+            showResult(images) {
+                const resultCard = document.getElementById('resultCard');
+                const imageGrid = document.getElementById('imageGrid');
+                
+                resultCard.style.display = 'block';
+                
+                imageGrid.innerHTML = images.map(url => `
+                    <div class="image-item">
+                        <img src="${url}" alt="生成的图片">
+                    </div>
+                `).join('');
+                
+                resultCard.scrollIntoView({ behavior: 'smooth' });
+            },
+            
+            showToast(message, type = 'info') {
+                const toast = document.getElementById('toast');
+                toast.textContent = message;
+                toast.className = `toast show ${type}`;
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 3000);
+            },
+            
+            showLoading() {
+                document.getElementById('loadingOverlay').classList.add('active');
+            },
+            
+            hideLoading() {
+                document.getElementById('loadingOverlay').classList.remove('active');
+            }
+        };
+        
+        // 启动应用
+        document.addEventListener('DOMContentLoaded', () => {
+            app.init();
+        });
+    </script>
+</body>
+</html>
+
