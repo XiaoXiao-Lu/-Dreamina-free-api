@@ -1,6 +1,10 @@
 // UI 交互模块
 class UIManager {
     constructor() {
+        // 历史记录懒加载相关
+        this.allHistory = [];
+        this.historyDisplayCount = 10;
+
         this.initElements();
         this.initEventListeners();
     }
@@ -126,6 +130,102 @@ class UIManager {
 
         // 加载服务器设置
         this.loadServerUrl();
+
+        // 历史记录滚动监听
+        this.initHistoryScroll();
+
+        // 返回顶部按钮
+        this.initBackToTop();
+
+        // 提示词快捷操作
+        this.initPromptActions();
+    }
+
+    // 初始化历史记录滚动监听
+    initHistoryScroll() {
+        const historyLoading = document.getElementById('historyLoading');
+        if (historyLoading) {
+            // 使用Intersection Observer监听"加载更多"元素
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        // 当"加载更多"元素进入视口时,加载更多
+                        this.loadMoreHistory();
+                    }
+                });
+            }, {
+                root: null,
+                rootMargin: '100px', // 提前100px开始加载
+                threshold: 0.1
+            });
+
+            observer.observe(historyLoading);
+        }
+    }
+
+    // 初始化返回顶部按钮
+    initBackToTop() {
+        const backToTopBtn = document.getElementById('backToTop');
+        if (!backToTopBtn) return;
+
+        // 监听滚动事件
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 300) {
+                backToTopBtn.classList.add('show');
+            } else {
+                backToTopBtn.classList.remove('show');
+            }
+        });
+
+        // 点击返回顶部
+        backToTopBtn.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+    }
+
+    // 初始化提示词快捷操作
+    initPromptActions() {
+        const pasteBtn = document.getElementById('pastePrompt');
+        const clearBtn = document.getElementById('clearPrompt');
+
+        // 粘贴按钮 - 聚焦输入框并触发粘贴
+        if (pasteBtn) {
+            pasteBtn.addEventListener('click', () => {
+                // 聚焦到输入框
+                this.promptInput.focus();
+
+                // 尝试使用Clipboard API
+                if (navigator.clipboard && navigator.clipboard.readText) {
+                    navigator.clipboard.readText()
+                        .then(text => {
+                            this.promptInput.value = text;
+                            this.updateCharCount();
+                            this.showToast('已粘贴剪贴板内容', 'success');
+                        })
+                        .catch(error => {
+                            console.log('Clipboard API不可用,请使用Ctrl+V粘贴');
+                            // 提示用户手动粘贴
+                            this.showToast('请按 Ctrl+V 粘贴', 'info');
+                        });
+                } else {
+                    // 不支持Clipboard API,提示用户手动粘贴
+                    this.showToast('请按 Ctrl+V 粘贴', 'info');
+                }
+            });
+        }
+
+        // 清空按钮
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                this.promptInput.value = '';
+                this.updateCharCount();
+                this.promptInput.focus();
+                this.showToast('已清空提示词', 'success');
+            });
+        }
     }
 
     // 切换侧边栏
@@ -453,17 +553,27 @@ class UIManager {
         this.resultCard.scrollIntoView({ behavior: 'smooth' });
     }
 
-    // 渲染历史记录
-    async renderHistory() {
+    // 渲染历史记录(懒加载)
+    async renderHistory(reset = false) {
         try {
-            const history = await storage.getHistory();
+            // 如果是重置,清空当前显示
+            if (reset) {
+                this.historyDisplayCount = 10;
+                this.allHistory = await storage.getHistory();
+            }
 
-            if (history.length === 0) {
+            // 如果没有历史记录
+            if (!this.allHistory || this.allHistory.length === 0) {
                 this.historyList.innerHTML = '<p class="empty-text">暂无历史记录</p>';
+                document.getElementById('historyLoading').style.display = 'none';
                 return;
             }
 
-            this.historyList.innerHTML = history.map(item => `
+            // 获取要显示的记录
+            const displayHistory = this.allHistory.slice(0, this.historyDisplayCount);
+
+            // 渲染历史记录
+            this.historyList.innerHTML = displayHistory.map(item => `
                 <div class="history-item">
                     <div class="history-item-content" onclick="ui.loadHistoryItem('${item.id}')">
                         <div><strong>${item.prompt.substring(0, 50)}${item.prompt.length > 50 ? '...' : ''}</strong></div>
@@ -480,10 +590,24 @@ class UIManager {
                     </button>
                 </div>
             `).join('');
+
+            // 显示/隐藏"加载更多"按钮
+            const loadingDiv = document.getElementById('historyLoading');
+            if (this.historyDisplayCount < this.allHistory.length) {
+                loadingDiv.style.display = 'block';
+            } else {
+                loadingDiv.style.display = 'none';
+            }
         } catch (error) {
             console.error('渲染历史记录失败:', error);
             this.historyList.innerHTML = '<p class="empty-text error">加载历史记录失败</p>';
         }
+    }
+
+    // 加载更多历史记录
+    loadMoreHistory() {
+        this.historyDisplayCount += 10;
+        this.renderHistory(false);
     }
 
     // 加载历史记录项
@@ -510,7 +634,7 @@ class UIManager {
         if (confirm('确定要删除这条历史记录吗？')) {
             try {
                 await storage.deleteHistory(itemId);
-                await this.renderHistory();
+                await this.renderHistory(true); // 重置并重新加载
                 this.showToast('历史记录已删除', 'success');
             } catch (error) {
                 console.error('删除历史记录失败:', error);
@@ -706,10 +830,20 @@ class UIManager {
         return div.innerHTML;
     }
 
-    // 获取代理图片URL
-    getProxyImageUrl(originalUrl) {
+    // 获取图片URL(优先使用本地缓存)
+    getProxyImageUrl(imageInfo) {
         const serverUrl = localStorage.getItem('dreamina_server_url') || '';
         const baseUrl = serverUrl || window.location.origin;
+
+        // 如果是对象格式(包含local字段),优先使用本地图片
+        if (typeof imageInfo === 'object' && imageInfo.local) {
+            return `${baseUrl}/api/images/${imageInfo.local}`;
+        }
+
+        // 如果是对象但没有local,使用original
+        const originalUrl = typeof imageInfo === 'object' ? imageInfo.original : imageInfo;
+
+        // 使用代理
         return `${baseUrl}/api/proxy/image?url=${encodeURIComponent(originalUrl)}`;
     }
 }

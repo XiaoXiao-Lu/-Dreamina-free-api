@@ -12,6 +12,8 @@ import logging
 import time
 import datetime
 from pathlib import Path
+import requests
+import hashlib
 
 # 添加父目录到路径，以便导入核心模块
 parent_dir = Path(__file__).parent.parent
@@ -35,6 +37,10 @@ CORS(app)  # 启用跨域支持
 config = None
 token_manager = None
 api_client = None
+
+# 图片存储目录
+IMAGES_DIR = Path(__file__).parent / 'images'
+IMAGES_DIR.mkdir(exist_ok=True)
 
 def load_config():
     """加载配置文件"""
@@ -71,6 +77,40 @@ def save_config():
     except Exception as e:
         logger.error(f"配置文件保存失败: {e}")
         return False
+
+def download_and_save_image(image_url):
+    """下载并保存图片到本地"""
+    try:
+        # 使用URL的MD5作为文件名
+        url_hash = hashlib.md5(image_url.encode()).hexdigest()
+        file_ext = '.png'  # 默认使用png
+
+        # 检查URL中是否有扩展名
+        if '.' in image_url.split('/')[-1]:
+            file_ext = '.' + image_url.split('.')[-1].split('?')[0]
+
+        filename = f"{url_hash}{file_ext}"
+        filepath = IMAGES_DIR / filename
+
+        # 如果文件已存在,直接返回
+        if filepath.exists():
+            logger.info(f"图片已存在: {filename}")
+            return filename
+
+        # 下载图片
+        logger.info(f"开始下载图片: {image_url}")
+        response = requests.get(image_url, timeout=30)
+        response.raise_for_status()
+
+        # 保存图片
+        with open(filepath, 'wb') as f:
+            f.write(response.content)
+
+        logger.info(f"图片保存成功: {filename}")
+        return filename
+    except Exception as e:
+        logger.error(f"下载图片失败: {e}")
+        return None
 
 def init_components():
     """初始化核心组件"""
@@ -692,8 +732,106 @@ def check_status(task_id):
         }), 500
 
 # 历史记录管理
-history_records = []  # 全局历史记录列表
+HISTORY_FILE = Path(__file__).parent / 'history.json'
 MAX_HISTORY_RECORDS = 100  # 最多保存100条记录
+
+def load_history():
+    """从文件加载历史记录"""
+    try:
+        if HISTORY_FILE.exists():
+            with open(HISTORY_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except Exception as e:
+        logger.error(f"加载历史记录失败: {e}")
+    return []
+
+def save_history(history_records):
+    """保存历史记录到文件"""
+    try:
+        with open(HISTORY_FILE, 'w', encoding='utf-8') as f:
+            json.dump(history_records, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.error(f"保存历史记录失败: {e}")
+
+# 加载历史记录
+history_records = load_history()
+logger.info(f"加载了 {len(history_records)} 条历史记录")
+
+# 活跃任务管理(用于多端同步)
+active_tasks = {}  # {task_id: task_info}
+
+@app.route('/api/tasks/active', methods=['GET'])
+def get_active_tasks():
+    """获取所有活跃任务"""
+    try:
+        # 清理超过10分钟的任务
+        current_time = time.time() * 1000
+        expired_tasks = []
+        for task_id, task_info in active_tasks.items():
+            if current_time - task_info['startTime'] > 10 * 60 * 1000:
+                expired_tasks.append(task_id)
+
+        for task_id in expired_tasks:
+            del active_tasks[task_id]
+
+        return jsonify({
+            'success': True,
+            'tasks': list(active_tasks.values())
+        })
+    except Exception as e:
+        logger.error(f"获取活跃任务失败: {e}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/api/tasks/active', methods=['POST'])
+def add_active_task():
+    """添加或更新活跃任务"""
+    try:
+        data = request.json
+        task_id = str(data.get('id'))
+
+        active_tasks[task_id] = {
+            'id': task_id,
+            'formData': data.get('formData', {}),
+            'mode': data.get('mode', 't2i'),
+            'startTime': data.get('startTime', int(time.time() * 1000)),
+            'serverTaskId': data.get('serverTaskId', ''),
+            'progress': data.get('progress', 0),
+            'status': data.get('status', 'pending')
+        }
+
+        logger.info(f"添加活跃任务: {task_id}")
+
+        return jsonify({
+            'success': True,
+            'id': task_id
+        })
+    except Exception as e:
+        logger.error(f"添加活跃任务失败: {e}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/api/tasks/active/<task_id>', methods=['DELETE'])
+def delete_active_task(task_id):
+    """删除活跃任务"""
+    try:
+        if task_id in active_tasks:
+            del active_tasks[task_id]
+            logger.info(f"删除活跃任务: {task_id}")
+
+        return jsonify({
+            'success': True
+        })
+    except Exception as e:
+        logger.error(f"删除活跃任务失败: {e}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
 
 @app.route('/api/history', methods=['GET'])
 def get_history():
@@ -717,6 +855,25 @@ def add_history():
     try:
         data = request.json
 
+        # 下载并保存图片到本地
+        original_images = data.get('images', [])
+        local_images = []
+
+        for img_url in original_images:
+            local_filename = download_and_save_image(img_url)
+            if local_filename:
+                # 保存本地文件名,用于快速加载
+                local_images.append({
+                    'original': img_url,
+                    'local': local_filename
+                })
+            else:
+                # 如果下载失败,仍然保存原始URL
+                local_images.append({
+                    'original': img_url,
+                    'local': None
+                })
+
         # 创建历史记录项
         history_item = {
             'id': str(int(time.time() * 1000)),  # 使用时间戳作为ID
@@ -726,7 +883,7 @@ def add_history():
             'resolution': data.get('resolution', ''),
             'ratio': data.get('ratio', ''),
             'mode': data.get('mode', 't2i'),
-            'images': data.get('images', []),
+            'images': local_images,  # 保存包含本地文件名的图片信息
             'historyId': data.get('historyId', '')
         }
 
@@ -737,7 +894,10 @@ def add_history():
         if len(history_records) > MAX_HISTORY_RECORDS:
             history_records.pop()
 
-        logger.info(f"添加历史记录: {history_item['id']}, 提示词: {history_item['prompt'][:50]}...")
+        # 保存到文件
+        save_history(history_records)
+
+        logger.info(f"添加历史记录: {history_item['id']}, 提示词: {history_item['prompt'][:50]}..., 图片数: {len(local_images)}")
 
         return jsonify({
             'success': True,
@@ -756,6 +916,9 @@ def delete_history(history_id):
     try:
         global history_records
         history_records = [h for h in history_records if h['id'] != history_id]
+
+        # 保存到文件
+        save_history(history_records)
 
         logger.info(f"删除历史记录: {history_id}")
 
@@ -777,6 +940,9 @@ def clear_history():
         count = len(history_records)
         history_records = []
 
+        # 保存到文件
+        save_history(history_records)
+
         logger.info(f"清空历史记录，共删除 {count} 条")
 
         return jsonify({
@@ -789,6 +955,18 @@ def clear_history():
             'success': False,
             'message': str(e)
         }), 500
+
+@app.route('/api/images/<filename>')
+def serve_local_image(filename):
+    """提供本地保存的图片"""
+    try:
+        return send_from_directory(IMAGES_DIR, filename)
+    except Exception as e:
+        logger.error(f"获取本地图片失败: {e}")
+        return jsonify({
+            'success': False,
+            'message': '图片不存在'
+        }), 404
 
 @app.route('/api/proxy/image', methods=['GET'])
 def proxy_image():
@@ -804,7 +982,6 @@ def proxy_image():
         logger.info(f"代理图片请求: {image_url[:100]}...")
 
         # 使用 API 客户端的 session 来请求图片（带有正确的 headers）
-        import requests
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             'Referer': 'https://dreamina.capcut.com/',

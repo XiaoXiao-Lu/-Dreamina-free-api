@@ -12,6 +12,7 @@ class DreaminaApp {
         this.setupFormSubmit();
         this.loadInitialData();
         this.restoreTasks(); // 恢复未完成的任务
+        this.startTaskSync(); // 启动任务同步
         ui.updateCharCount();
     }
 
@@ -25,7 +26,7 @@ class DreaminaApp {
             console.log('[App] 账号列表渲染完成');
 
             console.log('[App] 渲染历史记录...');
-            ui.renderHistory();
+            await ui.renderHistory(true); // 初始加载,重置显示
             console.log('[App] 历史记录渲染完成');
 
             const currentAccount = storage.getCurrentAccount();
@@ -51,8 +52,8 @@ class DreaminaApp {
         }
     }
 
-    // 保存任务到localStorage
-    saveTasks() {
+    // 保存任务到localStorage和服务器
+    async saveTasks() {
         const tasks = [];
         this.activeTasks.forEach((taskInfo, taskId) => {
             tasks.push({
@@ -66,6 +67,60 @@ class DreaminaApp {
         localStorage.setItem('dreamina_active_tasks', JSON.stringify(tasks));
         this.taskIdCounter = Math.max(this.taskIdCounter, ...Array.from(this.activeTasks.keys()), 0);
         localStorage.setItem('dreamina_task_counter', this.taskIdCounter.toString());
+
+        // 同步到服务器
+        try {
+            for (const task of tasks) {
+                await fetch(`${CONFIG.api.baseUrl}/tasks/active`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(task)
+                });
+            }
+        } catch (error) {
+            console.error('同步任务到服务器失败:', error);
+        }
+    }
+
+    // 启动任务同步(每10秒同步一次)
+    startTaskSync() {
+        setInterval(async () => {
+            try {
+                const response = await fetch(`${CONFIG.api.baseUrl}/tasks/active`);
+                const data = await response.json();
+
+                if (data.success && data.tasks) {
+                    // 合并服务器端的任务
+                    for (const serverTask of data.tasks) {
+                        const taskId = parseInt(serverTask.id);
+
+                        // 如果本地没有这个任务,创建它
+                        if (!this.activeTasks.has(taskId)) {
+                            const taskInfo = {
+                                id: taskId,
+                                formData: serverTask.formData,
+                                mode: serverTask.mode,
+                                startTime: serverTask.startTime,
+                                serverTaskId: serverTask.serverTaskId,
+                                cancelled: false
+                            };
+
+                            this.activeTasks.set(taskId, taskInfo);
+
+                            // 创建任务卡片
+                            ui.createTaskCard(taskId, serverTask.formData.prompt);
+
+                            // 如果有serverTaskId,继续执行
+                            if (serverTask.serverTaskId) {
+                                this.executeGeneration(taskId, taskInfo);
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('同步任务失败:', error);
+            }
+        }, 10000); // 每10秒同步一次
     }
 
     // 从localStorage恢复任务
@@ -195,6 +250,47 @@ class DreaminaApp {
     // 执行生成任务
     async executeGeneration(taskId, taskInfo) {
         try {
+            // 如果已经有serverTaskId,说明是恢复的任务,直接轮询状态
+            if (taskInfo.serverTaskId) {
+                console.log(`[App] 恢复任务 #${taskId}, serverTaskId: ${taskInfo.serverTaskId}`);
+                ui.updateTaskProgress(taskId, 30, '正在恢复任务...');
+
+                // 直接开始轮询
+                const result = await this.pollTaskStatus(taskId, taskInfo.serverTaskId);
+
+                // 检查任务是否被取消
+                if (taskInfo.cancelled) {
+                    ui.removeTaskCard(taskId);
+                    return;
+                }
+
+                const duration = ((Date.now() - taskInfo.startTime) / 1000).toFixed(1);
+                result.duration = duration;
+
+                // 显示结果
+                ui.showTaskResult(taskId, result);
+
+                // 保存到历史记录
+                try {
+                    await storage.addHistory({
+                        prompt: taskInfo.formData.prompt,
+                        model: taskInfo.formData.model,
+                        resolution: taskInfo.formData.resolution,
+                        ratio: taskInfo.formData.ratio,
+                        mode: taskInfo.mode,
+                        images: result.images,
+                        historyId: result.historyId || ''
+                    });
+                    await ui.renderHistory(true); // 重新加载历史记录
+                } catch (error) {
+                    console.error('保存历史记录失败:', error);
+                }
+
+                ui.showToast(`任务 #${taskId} 生成成功！`, 'success');
+                return;
+            }
+
+            // 新任务,正常提交
             ui.updateTaskProgress(taskId, 0, '正在提交任务...');
 
             let result;
@@ -227,13 +323,18 @@ class DreaminaApp {
                     images: result.images,
                     historyId: result.historyId || ''
                 });
-                await ui.renderHistory();
+                await ui.renderHistory(true); // 重新加载历史记录
             } catch (error) {
                 console.error('保存历史记录失败:', error);
                 // 不影响主流程,只记录错误
             }
 
             ui.showToast(`任务 #${taskId} 生成成功！`, 'success');
+
+            // 3秒后自动删除任务卡片
+            setTimeout(() => {
+                ui.removeTaskCard(taskId);
+            }, 3000);
 
         } catch (error) {
             console.error(`任务 #${taskId} 生成失败:`, error);
@@ -245,21 +346,37 @@ class DreaminaApp {
             }
         } finally {
             this.activeTasks.delete(taskId);
+            // 从服务器删除任务
+            try {
+                await fetch(`${CONFIG.api.baseUrl}/tasks/active/${taskId}`, {
+                    method: 'DELETE'
+                });
+            } catch (error) {
+                console.error('删除服务器任务失败:', error);
+            }
             // 更新保存的任务列表
-            this.saveTasks();
+            await this.saveTasks();
         }
     }
 
     // 取消任务
-    cancelTask(taskId) {
+    async cancelTask(taskId) {
         const taskInfo = this.activeTasks.get(taskId);
         if (taskInfo) {
             taskInfo.cancelled = true;
             this.activeTasks.delete(taskId);
             ui.removeTaskCard(taskId);
             ui.showToast(`任务 #${taskId} 已取消`, 'info');
+            // 从服务器删除任务
+            try {
+                await fetch(`${CONFIG.api.baseUrl}/tasks/active/${taskId}`, {
+                    method: 'DELETE'
+                });
+            } catch (error) {
+                console.error('删除服务器任务失败:', error);
+            }
             // 更新保存的任务列表
-            this.saveTasks();
+            await this.saveTasks();
         }
     }
 
@@ -329,62 +446,8 @@ class DreaminaApp {
                 this.saveTasks();
             }
 
-            let attempts = 0;
-            const maxAttempts = 60; // 最多等待5分钟
-            let consecutiveErrors = 0; // 连续错误计数
-
-            while (attempts < maxAttempts) {
-                // 检查任务是否被取消
-                const currentTaskInfo = this.activeTasks.get(localTaskId);
-                if (!currentTaskInfo || currentTaskInfo.cancelled) {
-                    throw new Error('任务已取消');
-                }
-
-                await new Promise(resolve => setTimeout(resolve, 5000)); // 每5秒检查一次
-
-                try {
-                    const status = await api.checkStatus(serverTaskId);
-                    consecutiveErrors = 0; // 重置错误计数
-
-                    // 先检查失败状态,如果失败则立即抛出错误
-                    if (status.failed) {
-                        throw new Error(status.error || '生成失败');
-                    }
-
-                    const progress = Math.min(90, 30 + (attempts / maxAttempts) * 60);
-                    ui.updateTaskProgress(localTaskId, progress, status.message || '正在生成图片...');
-
-                    if (status.completed && status.images) {
-                        ui.updateTaskProgress(localTaskId, 100, '生成完成！');
-                        return {
-                            images: status.images,
-                            historyId: status.historyId || serverTaskId,
-                        };
-                    }
-                } catch (error) {
-                    // 如果是失败状态导致的错误,直接向上抛出,不计入连续错误
-                    if (error.message && (error.message.includes('敏感内容') || error.message.includes('不符合规范') || error.message.includes('生成失败') || error.message.includes('参数错误'))) {
-                        throw error;
-                    }
-
-                    consecutiveErrors++;
-                    console.error(`任务 #${localTaskId} 状态查询错误 (${consecutiveErrors}/3):`, error);
-
-                    // 如果连续3次错误，认为任务失败
-                    if (consecutiveErrors >= 3) {
-                        throw new Error(`任务失败: ${error.message}`);
-                    }
-
-                    // 否则继续等待
-                    ui.updateTaskProgress(localTaskId,
-                        Math.min(90, 30 + (attempts / maxAttempts) * 60),
-                        `正在生成图片... (重试 ${consecutiveErrors}/3)`);
-                }
-
-                attempts++;
-            }
-
-            throw new Error('生成超时，请稍后重试');
+            // 使用统一的轮询方法
+            return await this.pollTaskStatus(localTaskId, serverTaskId);
 
         } catch (error) {
             throw error;
@@ -432,64 +495,77 @@ class DreaminaApp {
 
             // 需要轮询检查状态
             const serverTaskId = response.taskId;
-            let attempts = 0;
-            const maxAttempts = 60;
-            let consecutiveErrors = 0;
 
-            while (attempts < maxAttempts) {
-                // 检查任务是否被取消
-                const taskInfo = this.activeTasks.get(localTaskId);
-                if (!taskInfo || taskInfo.cancelled) {
-                    throw new Error('任务已取消');
-                }
-
-                await new Promise(resolve => setTimeout(resolve, 5000));
-
-                try {
-                    const status = await api.checkStatus(serverTaskId);
-                    consecutiveErrors = 0;
-
-                    // 先检查失败状态,如果失败则立即抛出错误
-                    if (status.failed) {
-                        throw new Error(status.error || '生成失败');
-                    }
-
-                    const progress = Math.min(90, 30 + (attempts / maxAttempts) * 60);
-                    ui.updateTaskProgress(localTaskId, progress, status.message || '正在生成图片...');
-
-                    if (status.completed && status.images) {
-                        ui.updateTaskProgress(localTaskId, 100, '生成完成！');
-                        return {
-                            images: status.images,
-                            historyId: status.historyId || serverTaskId,
-                        };
-                    }
-                } catch (error) {
-                    // 如果是失败状态导致的错误,直接向上抛出,不计入连续错误
-                    if (error.message && (error.message.includes('敏感内容') || error.message.includes('不符合规范') || error.message.includes('生成失败') || error.message.includes('参数错误'))) {
-                        throw error;
-                    }
-
-                    consecutiveErrors++;
-                    console.error(`任务 #${localTaskId} 状态查询错误 (${consecutiveErrors}/3):`, error);
-
-                    if (consecutiveErrors >= 3) {
-                        throw new Error(`任务失败: ${error.message}`);
-                    }
-
-                    ui.updateTaskProgress(localTaskId,
-                        Math.min(90, 30 + (attempts / maxAttempts) * 60),
-                        `正在生成图片... (重试 ${consecutiveErrors}/3)`);
-                }
-
-                attempts++;
+            // 保存serverTaskId到任务信息
+            const taskInfo = this.activeTasks.get(localTaskId);
+            if (taskInfo) {
+                taskInfo.serverTaskId = serverTaskId;
+                this.saveTasks();
             }
 
-            throw new Error('生成超时，请稍后重试');
+            // 使用统一的轮询方法
+            return await this.pollTaskStatus(localTaskId, serverTaskId);
 
         } catch (error) {
             throw error;
         }
+    }
+
+    // 轮询任务状态(用于恢复任务)
+    async pollTaskStatus(localTaskId, serverTaskId) {
+        let attempts = 0;
+        const maxAttempts = 120; // 最多等待10分钟(考虑违禁词检测可能较慢)
+        let consecutiveErrors = 0;
+
+        while (attempts < maxAttempts) {
+            // 检查任务是否被取消
+            const taskInfo = this.activeTasks.get(localTaskId);
+            if (!taskInfo || taskInfo.cancelled) {
+                throw new Error('任务已取消');
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 5000)); // 每5秒检查一次
+
+            try {
+                const status = await api.checkStatus(serverTaskId);
+                consecutiveErrors = 0;
+
+                // 先检查失败状态
+                if (status.failed) {
+                    throw new Error(status.error || '生成失败');
+                }
+
+                const progress = Math.min(90, 30 + (attempts / maxAttempts) * 60);
+                ui.updateTaskProgress(localTaskId, progress, status.message || '正在生成图片...');
+
+                if (status.completed && status.images) {
+                    ui.updateTaskProgress(localTaskId, 100, '生成完成！');
+                    return {
+                        images: status.images,
+                        historyId: status.historyId || serverTaskId,
+                    };
+                }
+            } catch (error) {
+                // 如果是失败状态导致的错误,直接向上抛出
+                if (error.message && (error.message.includes('敏感内容') ||
+                    error.message.includes('不符合规范') ||
+                    error.message.includes('生成失败') ||
+                    error.message.includes('参数错误'))) {
+                    throw error;
+                }
+
+                consecutiveErrors++;
+                console.error(`检查状态失败 (${consecutiveErrors}/3):`, error);
+
+                if (consecutiveErrors >= 3) {
+                    throw new Error('连接服务器失败，请检查网络');
+                }
+            }
+
+            attempts++;
+        }
+
+        throw new Error('生成超时，请重试');
     }
 }
 

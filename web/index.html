@@ -92,7 +92,6 @@
 
     <!-- 主内容区 -->
     <main class="main-content">
-        <!-- 生成表单 -->
         <div class="container">
             <div class="card">
                 <h2 class="card-title">
@@ -105,14 +104,24 @@
                         <label for="prompt">
                             <i class="fas fa-pen"></i> 提示词
                         </label>
-                        <textarea
-                            id="prompt"
-                            class="form-control"
-                            rows="4"
-                            placeholder="描述你想要生成的图片..."
-                            maxlength="1600"
-                            required
-                        >一只可爱的小猫咪</textarea>
+                        <div class="prompt-wrapper">
+                            <textarea
+                                id="prompt"
+                                class="form-control"
+                                rows="4"
+                                placeholder="描述你想要生成的图片..."
+                                maxlength="1600"
+                                required
+                            >一只可爱的小猫咪</textarea>
+                            <div class="prompt-actions">
+                                <button type="button" class="btn-prompt-action" id="pastePrompt" title="粘贴">
+                                    <i class="fas fa-paste"></i>
+                                </button>
+                                <button type="button" class="btn-prompt-action" id="clearPrompt" title="清空">
+                                    <i class="fas fa-eraser"></i>
+                                </button>
+                            </div>
+                        </div>
                         <div class="char-count">
                             <span id="charCount">0</span>/1600
                         </div>
@@ -250,6 +259,9 @@
                 <div class="history-list" id="historyList">
                     <p class="empty-text">暂无历史记录</p>
                 </div>
+                <div class="history-loading" id="historyLoading" style="display: none;">
+                    <i class="fas fa-spinner fa-spin"></i> 加载更多...
+                </div>
             </div>
         </div>
     </main>
@@ -261,6 +273,11 @@
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-spinner"></div>
     </div>
+
+    <!-- 返回顶部按钮 -->
+    <button class="back-to-top" id="backToTop" title="返回顶部">
+        <i class="fas fa-arrow-up"></i>
+    </button>
 
     <!-- 模态框 - 添加账号 -->
     <div class="modal" id="addAccountModal">

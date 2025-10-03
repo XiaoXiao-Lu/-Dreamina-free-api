@@ -202,6 +202,45 @@ textarea.form-control {
     min-height: 100px;
 }
 
+/* 提示词输入框包装器 */
+.prompt-wrapper {
+    position: relative;
+}
+
+.prompt-actions {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    display: flex;
+    gap: 0.5rem;
+    z-index: 10;
+}
+
+.btn-prompt-action {
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--primary-color);
+    border: none;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.875rem;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-prompt-action:hover {
+    background: rgba(99, 102, 241, 0.2);
+    transform: scale(1.1);
+}
+
+.btn-prompt-action:active {
+    transform: scale(0.95);
+}
+
 .char-count {
     text-align: right;
     font-size: 0.875rem;
@@ -519,6 +558,18 @@ textarea.form-control {
     padding: 2rem;
 }
 
+/* 历史记录加载更多 */
+.history-loading {
+    text-align: center;
+    padding: 1rem;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+.history-loading i {
+    margin-right: 0.5rem;
+}
+
 /* Toast 提示 */
 .toast {
     position: fixed;
@@ -798,6 +849,47 @@ textarea.form-control {
     margin-bottom: 1rem;
     color: var(--text-secondary);
     font-size: 0.9rem;
+}
+
+/* 返回顶部按钮 */
+.back-to-top {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 3rem;
+    height: 3rem;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s;
+    z-index: 999;
+}
+
+.back-to-top:hover {
+    background: var(--primary-hover);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.back-to-top.show {
+    display: flex;
+}
+
+@media (max-width: 768px) {
+    .back-to-top {
+        bottom: 1rem;
+        right: 1rem;
+        width: 2.5rem;
+        height: 2.5rem;
+        font-size: 1rem;
+    }
 }
 
 .result-info span {
