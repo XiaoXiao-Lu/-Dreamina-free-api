@@ -1,134 +1,35 @@
 [
   {
-    "id": "1759516245597",
-    "timestamp": "2025-10-04T02:30:45.597857",
-    "prompt": "一只可爱的小猫咪",
-    "model": "4.0",
-    "resolution": "2k",
-    "ratio": "1:1",
-    "mode": "t2i",
-    "images": [
-      {
-        "original": "https://p16-dreamina-sign-sg.ibyteimg.com/tos-alisg-i-wopfjsm1ax-sg/658364b63209465fb78899df1c0152cd~tplv-wopfjsm1ax-aigc_resize:0:0.jpeg?lk3s=43402efa&x-expires=1761264000&x-signature=sUxPa1R70tID77FTp2JHvSP6YN8%3D&format=.jpeg",
-        "local": "62e61e96a76d5b53ee5b0e2878232a44.jpeg",
-        "thumbnail": "62e61e96a76d5b53ee5b0e2878232a44_thumb.jpg"
-      },
-      {
-        "original": "https://p16-dreamina-sign-sg.ibyteimg.com/tos-alisg-i-wopfjsm1ax-sg/63a814928f03406d930d16cd1de42f2c~tplv-wopfjsm1ax-aigc_resize:0:0.jpeg?lk3s=43402efa&x-expires=1761264000&x-signature=WXXyabbUMcpedcs7LLKccd4TGFY%3D&format=.jpeg",
-        "local": "331f365909ed162973a77803462a4c99.jpeg",
-        "thumbnail": "331f365909ed162973a77803462a4c99_thumb.jpg"
-      },
-      {
-        "original": "https://p16-dreamina-sign-sg.ibyteimg.com/tos-alisg-i-wopfjsm1ax-sg/daa28f54e9c64be192e1a2b4a63e767d~tplv-wopfjsm1ax-aigc_resize:0:0.jpeg?lk3s=43402efa&x-expires=1761264000&x-signature=y%2Bj5KU8wPFnEpXQD47AhNMYy7x4%3D&format=.jpeg",
-        "local": "09ded1a690a4ae66adec50536561d6ed.jpeg",
-        "thumbnail": "09ded1a690a4ae66adec50536561d6ed_thumb.jpg"
-      },
-      {
-        "original": "https://p16-dreamina-sign-sg.ibyteimg.com/tos-alisg-i-wopfjsm1ax-sg/2f22af2a7f8548159e1144ba42eaf86d~tplv-wopfjsm1ax-aigc_resize:0:0.jpeg?lk3s=43402efa&x-expires=1761264000&x-signature=eCchwSzDsI95XoFAY12vN8B533s%3D&format=.jpeg",
-        "local": "b9e08a44260209d03069049689d3b74b.jpeg",
-        "thumbnail": "b9e08a44260209d03069049689d3b74b_thumb.jpg"
-      }
-    ],
-    "historyId": "003759be-44c8-431d-82a2-013148fd5304",
-    "duration": "18.2"
-  },
-  {
-    "id": "1759516217975",
-    "timestamp": "2025-10-04T02:30:17.975957",
-    "prompt": "夜幕下的高中教室，从半掩的门缝中，我无意间瞥见了一幕私人场景。窗外路灯的微弱光线，勉强勾勒出室内模糊的轮廓。一位亚洲可爱女大学生，她那雪白肌肤在昏暗中若隐若现，玲珑有致的身材曲线因紧绷的动作而更加引人遐想。她穿着一件原本时尚的日常衬衫和短裙，此刻却因激烈的身体交织而显得凌乱不堪，衬衫半褪，露出香肩和一部分柔嫩的肌肤。她的身体与身前的男友紧密相拥，重心不稳地靠在课桌旁，两人的呼吸急促而深沉，仿佛在进行一场无声的角力。周围的课桌椅在阴影中模糊成一片，黑板上的板书依稀可见，整个空间弥漫着一种被时间凝固的紧张与暧昧。墙角一台老旧的投影仪，投射出微弱的待机指示灯光，为这私密的一刻增添了一丝诡异的日常感。画面轻微歪斜，带着极细微的动态模糊，仿佛是朋友用旧款手机在不经意间按下快门。零美颜滤镜，皮肤保留原生质感。色彩偏冷灰，光线是现场微弱的自然光与人造光的混合，整体呈现出一种毫无预兆、随手记录的真实感，无任何摆拍痕迹。",
-    "model": "4.0",
-    "resolution": "2k",
-    "ratio": "1:1",
-    "mode": "t2i",
-    "images": [
-      {
-        "original": "https://p16-dreamina-sign-sg.ibyteimg.com/tos-alisg-i-wopfjsm1ax-sg/437ee3686d334d1eaf8c7d520b2396e1~tplv-wopfjsm1ax-aigc_resize:0:0.jpeg?lk3s=43402efa&x-expires=1761264000&x-signature=PBcazWlgPGh1SnBisthhJ4P8pPA%3D&format=.jpeg",
-        "local": "42237fc1d11ff63c79139dcd10749e5a.jpeg",
-        "thumbnail": "42237fc1d11ff63c79139dcd10749e5a_thumb.jpg"
-      },
-      {
-        "original": "https://p16-dreamina-sign-sg.ibyteimg.com/tos-alisg-i-wopfjsm1ax-sg/52703994aaa34f869a049c4c6abb0d7d~tplv-wopfjsm1ax-aigc_resize:0:0.jpeg?lk3s=43402efa&x-expires=1761264000&x-signature=zD99YhNj5hf1uyMJXqWHzADS5hk%3D&format=.jpeg",
-        "local": "ae954faabdd5cc63e5dd929a0d4f67fc.jpeg",
-        "thumbnail": "ae954faabdd5cc63e5dd929a0d4f67fc_thumb.jpg"
-      },
-      {
-        "original": "https://p16-dreamina-sign-sg.ibyteimg.com/tos-alisg-i-wopfjsm1ax-sg/4242634be10c462b91c8256c212e50d2~tplv-wopfjsm1ax-aigc_resize:0:0.jpeg?lk3s=43402efa&x-expires=1761264000&x-signature=q4rnryj6CBe0vVb%2Bwbf2m2nW30E%3D&format=.jpeg",
-        "local": "99845a77a043514adf77e1e11d4eb4ed.jpeg",
-        "thumbnail": "99845a77a043514adf77e1e11d4eb4ed_thumb.jpg"
-      },
-      {
-        "original": "https://p16-dreamina-sign-sg.ibyteimg.com/tos-alisg-i-wopfjsm1ax-sg/9e5b75a6f7e8415b97a564518fbec30f~tplv-wopfjsm1ax-aigc_resize:0:0.jpeg?lk3s=43402efa&x-expires=1761264000&x-signature=PS5BXPdoKd4%2FbrzEhuSYG5gdJ%2FI%3D&format=.jpeg",
-        "local": "8998578ab033e9b4fdcf2781f583014b.jpeg",
-        "thumbnail": "8998578ab033e9b4fdcf2781f583014b_thumb.jpg"
-      }
-    ],
-    "historyId": "26819494-cf67-4235-8fda-cf575a75f6c2",
-    "duration": "52.4"
-  },
-  {
-    "id": "1759516137580",
-    "timestamp": "2025-10-04T02:28:57.580598",
-    "prompt": "夜幕下的高中教室，从半掩的门缝中，我无意间瞥见了一幕私人场景。窗外路灯的微弱光线，勉强勾勒出室内模糊的轮廓。一位亚洲可爱女大学生，她那雪白肌肤在昏暗中若隐若现，玲珑有致的身材曲线因紧绷的动作而更加引人遐想。她穿着一件原本时尚的日常衬衫和短裙，此刻却因激烈的身体交织而显得凌乱不堪，衬衫半褪，露出香肩和一部分柔嫩的肌肤。她的身体与身前的男友紧密相拥，重心不稳地靠在课桌旁，两人的呼吸急促而深沉，仿佛在进行一场无声的角力。周围的课桌椅在阴影中模糊成一片，黑板上的板书依稀可见，整个空间弥漫着一种被时间凝固的紧张与暧昧。墙角一台老旧的投影仪，投射出微弱的待机指示灯光，为这私密的一刻增添了一丝诡异的日常感。画面轻微歪斜，带着极细微的动态模糊，仿佛是朋友用旧款手机在不经意间按下快门。零美颜滤镜，皮肤保留原生质感。色彩偏冷灰，光线是现场微弱的自然光与人造光的混合，整体呈现出一种毫无预兆、随手记录的真实感，无任何摆拍痕迹。",
-    "model": "4.0",
-    "resolution": "2k",
-    "ratio": "1:1",
-    "mode": "t2i",
-    "images": [
-      {
-        "original": "https://p16-dreamina-sign-sg.ibyteimg.com/tos-alisg-i-wopfjsm1ax-sg/02fe6f0d03ff42bd964498e0ebe0294f~tplv-wopfjsm1ax-aigc_resize:0:0.jpeg?lk3s=43402efa&x-expires=1761264000&x-signature=Rn7fNokVng59720iaE%2B88rPW5H4%3D&format=.jpeg",
-        "local": "101df8d0cac0aa554fa17650df75c000.jpeg",
-        "thumbnail": "101df8d0cac0aa554fa17650df75c000_thumb.jpg"
-      },
-      {
-        "original": "https://p16-dreamina-sign-sg.ibyteimg.com/tos-alisg-i-wopfjsm1ax-sg/fe30178bf7204825a5e46d64f9400790~tplv-wopfjsm1ax-aigc_resize:0:0.jpeg?lk3s=43402efa&x-expires=1761264000&x-signature=N%2Bx9alsxzUUz%2Fx3gPWRec6smin8%3D&format=.jpeg",
-        "local": "d2e6d4dee596c8ab7c643fba4a11f730.jpeg",
-        "thumbnail": "d2e6d4dee596c8ab7c643fba4a11f730_thumb.jpg"
-      },
-      {
-        "original": "https://p16-dreamina-sign-sg.ibyteimg.com/tos-alisg-i-wopfjsm1ax-sg/c19de4011a1940689dbbf697f524bb12~tplv-wopfjsm1ax-aigc_resize:0:0.jpeg?lk3s=43402efa&x-expires=1761264000&x-signature=W%2Bg6x5XZxkvfCGM5E4ItSHXExJI%3D&format=.jpeg",
-        "local": "bc7092cb9b08661018d95394a9f90fe6.jpeg",
-        "thumbnail": "bc7092cb9b08661018d95394a9f90fe6_thumb.jpg"
-      },
-      {
-        "original": "https://p19-dreamina-sign-sg.ibyteimg.com/tos-alisg-i-wopfjsm1ax-sg/82c33bae19a4431ea548d45498254703~tplv-wopfjsm1ax-aigc_resize:0:0.png?lk3s=43402efa&x-expires=1761264000&x-signature=4ZTyYDt7%2BnSCyxiD%2FpDVGe%2BGuaM%3D&format=.png",
-        "local": "baeb82ebd9e6d1a3dad44d3fd87bb619.png",
-        "thumbnail": "baeb82ebd9e6d1a3dad44d3fd87bb619_thumb.jpg"
-      }
-    ],
-    "historyId": "856c9913-8dce-4f69-975c-9da5ecf0f542",
-    "duration": null
-  },
-  {
-    "id": "1759513676103",
-    "timestamp": "2025-10-04T01:47:56.103102",
-    "prompt": "在一间被夜幕笼罩的废弃高中教室里，空气中弥漫着旧书和木质课桌特有的陈旧气息。两名年轻的亚洲学生情侣，在强烈而无法抑制的青春冲动驱使下，正进行着一场不被允许的秘密互动。他们紧密地缠绕在一起，身体的每一寸肌肤都因极度的亲密接触和摩擦而紧绷。由于重力的作用和身体的挤压，他们身上原本整洁的校服已经变得凌乱不堪，衬衫被拉扯得紧贴背部，裙摆因激烈的动作而向上堆叠，露出大腿自然而富有张力的曲线。他们的四肢交织，形成一个复杂而充满力量感的雕塑般形态",
+    "id": "1759517789421",
+    "timestamp": "2025-10-04T02:56:29.421323",
+    "prompt": "一只可爱的小猫咪85",
     "model": "4.0",
     "resolution": "4k",
     "ratio": "16:9",
     "mode": "t2i",
     "images": [
       {
-        "original": "https://p16-dreamina-sign-sg.ibyteimg.com/tos-alisg-i-wopfjsm1ax-sg/3731678e71194a358d78bc25feb5cdc2~tplv-wopfjsm1ax-aigc_resize:0:0.jpeg?lk3s=43402efa&x-expires=1761264000&x-signature=FiQPHdFUDn7diaoEjaOltWc0Kr0%3D&format=.jpeg",
-        "local": "b73583dd388d82c991d82147881b90b4.jpeg",
-        "thumbnail": "b73583dd388d82c991d82147881b90b4_thumb.jpg"
+        "original": "https://p16-dreamina-sign-sg.ibyteimg.com/tos-alisg-i-wopfjsm1ax-sg/c4a4a453c8a14c78863f0b76a5dfef3a~tplv-wopfjsm1ax-aigc_resize:0:0.jpeg?lk3s=43402efa&x-expires=1761264000&x-signature=t89nnkzZzYVk7XOKdCf530Ujphw%3D&format=.jpeg",
+        "local": "cf8b3c7992628b9ff7cf58a7ad239daa.jpeg",
+        "thumbnail": "cf8b3c7992628b9ff7cf58a7ad239daa_thumb.jpg"
       },
       {
-        "original": "https://p16-dreamina-sign-sg.ibyteimg.com/tos-alisg-i-wopfjsm1ax-sg/78ea323cd19f4b26b18ecb12c8759655~tplv-wopfjsm1ax-aigc_resize:0:0.jpeg?lk3s=43402efa&x-expires=1761264000&x-signature=g43lyuZXfTT5r111VIPjHtCb5uE%3D&format=.jpeg",
-        "local": "cbb2a850f9b5de63fe673ce3a7e339b4.jpeg",
-        "thumbnail": "cbb2a850f9b5de63fe673ce3a7e339b4_thumb.jpg"
+        "original": "https://p16-dreamina-sign-sg.ibyteimg.com/tos-alisg-i-wopfjsm1ax-sg/a8ec3ca294014d43bb77fde73c143f6e~tplv-wopfjsm1ax-aigc_resize:0:0.jpeg?lk3s=43402efa&x-expires=1761264000&x-signature=W0cDHSqQaUGqQGT6fXyJFrN8CvM%3D&format=.jpeg",
+        "local": "e159535f92615761cbd0dd85b348c377.jpeg",
+        "thumbnail": "e159535f92615761cbd0dd85b348c377_thumb.jpg"
       },
       {
-        "original": "https://p16-dreamina-sign-sg.ibyteimg.com/tos-alisg-i-wopfjsm1ax-sg/90a89f41bc4949499474c0e42ecc074e~tplv-wopfjsm1ax-aigc_resize:0:0.jpeg?lk3s=43402efa&x-expires=1761264000&x-signature=1W0%2BTOUa818Ttq5eZD%2F%2BF8T4NFE%3D&format=.jpeg",
-        "local": "64f19d9a556cf9c07b05cd5dcc667832.jpeg",
-        "thumbnail": "64f19d9a556cf9c07b05cd5dcc667832_thumb.jpg"
+        "original": "https://p16-dreamina-sign-sg.ibyteimg.com/tos-alisg-i-wopfjsm1ax-sg/5e5ea8f95bf7427a89ed4792812e1cca~tplv-wopfjsm1ax-aigc_resize:0:0.jpeg?lk3s=43402efa&x-expires=1761264000&x-signature=lB%2Bcejn3oxdc1%2BLeJBOoNRlc89w%3D&format=.jpeg",
+        "local": "61573bf52a9031d53ad8903a4874c028.jpeg",
+        "thumbnail": "61573bf52a9031d53ad8903a4874c028_thumb.jpg"
       },
       {
-        "original": "https://p16-dreamina-sign-sg.ibyteimg.com/tos-alisg-i-wopfjsm1ax-sg/53fdc572b3ae4c4f8dfe29b11b876ff2~tplv-wopfjsm1ax-aigc_resize:0:0.jpeg?lk3s=43402efa&x-expires=1761264000&x-signature=NLKYPOaOKZP2Dzd0HP8rj7T%2Fa0g%3D&format=.jpeg",
-        "local": "a4d7a339de076542cadfa1896b7d7dac.jpeg",
-        "thumbnail": "a4d7a339de076542cadfa1896b7d7dac_thumb.jpg"
+        "original": "https://p16-dreamina-sign-sg.ibyteimg.com/tos-alisg-i-wopfjsm1ax-sg/42134b52e8854618a4e162ed7dd6eda4~tplv-wopfjsm1ax-aigc_resize:0:0.jpeg?lk3s=43402efa&x-expires=1761264000&x-signature=YSPOK8JbU0rl87XARBQKtCGpIrE%3D&format=.jpeg",
+        "local": "a761662c414182505676c3b66be75c0a.jpeg",
+        "thumbnail": "a761662c414182505676c3b66be75c0a_thumb.jpg"
       }
     ],
-    "historyId": "8a750ce2-214a-48dd-b1de-6e0098640576",
-    "duration": null
+    "historyId": "d19ece01-2090-4c8f-9a02-3e9acafc99b5",
+    "duration": "30.9"
   }
 ]

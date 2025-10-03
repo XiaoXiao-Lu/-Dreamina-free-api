@@ -335,10 +335,7 @@ class DreaminaApp {
                 const duration = ((Date.now() - taskInfo.startTime) / 1000).toFixed(1);
                 result.duration = duration;
 
-                // 显示结果
-                ui.showTaskResult(taskId, result);
-
-                // 保存到历史记录
+                // 先保存到历史记录
                 try {
                     await storage.addHistory({
                         prompt: taskInfo.formData.prompt,
@@ -355,10 +352,10 @@ class DreaminaApp {
                     console.error('保存历史记录失败:', error);
                 }
 
-                ui.showToast(`任务 #${taskId} 生成成功！`, 'success');
-
-                // 立即删除任务卡片
+                // 然后删除任务卡片
                 ui.removeTaskCard(taskId);
+
+                ui.showToast(`任务 #${taskId} 生成成功！`, 'success');
                 return;
             }
 
@@ -381,10 +378,7 @@ class DreaminaApp {
             const duration = ((Date.now() - taskInfo.startTime) / 1000).toFixed(1);
             result.duration = duration;
 
-            // 显示结果
-            ui.showTaskResult(taskId, result);
-
-            // 保存到历史记录(异步)
+            // 先保存到历史记录
             try {
                 await storage.addHistory({
                     prompt: taskInfo.formData.prompt,
@@ -402,10 +396,10 @@ class DreaminaApp {
                 // 不影响主流程,只记录错误
             }
 
-            ui.showToast(`任务 #${taskId} 生成成功！`, 'success');
-
-            // 立即删除任务卡片
+            // 然后删除任务卡片
             ui.removeTaskCard(taskId);
+
+            ui.showToast(`任务 #${taskId} 生成成功！`, 'success');
 
         } catch (error) {
             console.error(`任务 #${taskId} 生成失败:`, error);

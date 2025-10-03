@@ -900,26 +900,17 @@ def add_history():
     try:
         data = request.json
 
-        # 下载并保存图片到本地,同时生成缩略图
+        # 先使用原始URL创建历史记录(不等待下载)
         original_images = data.get('images', [])
         local_images = []
 
         for img_url in original_images:
-            local_filename, thumbnail_filename = download_and_save_image(img_url)
-            if local_filename:
-                # 保存本地文件名和缩略图文件名
-                local_images.append({
-                    'original': img_url,
-                    'local': local_filename,
-                    'thumbnail': thumbnail_filename
-                })
-            else:
-                # 如果下载失败,仍然保存原始URL
-                local_images.append({
-                    'original': img_url,
-                    'local': None,
-                    'thumbnail': None
-                })
+            # 先保存原始URL,稍后在后台下载
+            local_images.append({
+                'original': img_url,
+                'local': None,
+                'thumbnail': None
+            })
 
         # 检查是否已存在相同的historyId(去重)
         history_id_to_check = data.get('historyId', '')
@@ -937,7 +928,7 @@ def add_history():
             'resolution': data.get('resolution', ''),
             'ratio': data.get('ratio', ''),
             'mode': data.get('mode', 't2i'),
-            'images': local_images,  # 保存包含本地文件名的图片信息
+            'images': local_images,  # 先保存原始URL
             'historyId': history_id_to_check,
             'duration': data.get('duration', None)  # 保存耗时
         }
@@ -953,6 +944,31 @@ def add_history():
         save_history(history_records)
 
         logger.info(f"添加历史记录: {history_item['id']}, 提示词: {history_item['prompt'][:50]}..., 图片数: {len(local_images)}")
+
+        # 在后台异步下载图片
+        def download_images_async():
+            try:
+                updated = False
+                for i, img_url in enumerate(original_images):
+                    local_filename, thumbnail_filename = download_and_save_image(img_url)
+                    if local_filename:
+                        # 更新历史记录中的图片信息
+                        history_item['images'][i]['local'] = local_filename
+                        history_item['images'][i]['thumbnail'] = thumbnail_filename
+                        updated = True
+                        logger.info(f"后台下载图片成功: {local_filename}")
+
+                # 如果有更新,保存到文件
+                if updated:
+                    save_history(history_records)
+                    logger.info(f"历史记录图片更新完成: {history_item['id']}")
+            except Exception as e:
+                logger.error(f"后台下载图片失败: {e}")
+
+        # 启动后台线程下载图片
+        import threading
+        thread = threading.Thread(target=download_images_async, daemon=True)
+        thread.start()
 
         return jsonify({
             'success': True,
