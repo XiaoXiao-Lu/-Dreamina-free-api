@@ -271,40 +271,73 @@ class StorageManager {
         localStorage.setItem(CONFIG.storage.currentAccount, accountId);
     }
 
-    // 获取历史记录
-    getHistory() {
-        const history = localStorage.getItem(CONFIG.storage.history);
-        return history ? JSON.parse(history) : [];
+    // 获取历史记录(从服务器)
+    async getHistory() {
+        try {
+            const response = await fetch(`${CONFIG.api.baseUrl}/history`);
+            const data = await response.json();
+            if (data.success) {
+                return data.history || [];
+            }
+            return [];
+        } catch (error) {
+            console.error('获取历史记录失败:', error);
+            return [];
+        }
     }
 
-    // 保存历史记录
-    saveHistory(history) {
-        // 限制历史记录数量
-        const limited = history.slice(0, CONFIG.limits.maxHistoryItems);
-        localStorage.setItem(CONFIG.storage.history, JSON.stringify(limited));
+    // 添加历史记录(到服务器)
+    async addHistory(item) {
+        try {
+            const response = await fetch(`${CONFIG.api.baseUrl}/history`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(item)
+            });
+            const data = await response.json();
+            if (!data.success) {
+                throw new Error(data.message || '添加历史记录失败');
+            }
+            return data.id;
+        } catch (error) {
+            console.error('添加历史记录失败:', error);
+            throw error;
+        }
     }
 
-    // 添加历史记录
-    addHistory(item) {
-        const history = this.getHistory();
-        history.unshift({
-            ...item,
-            id: Date.now().toString(),
-            timestamp: new Date().toISOString(),
-        });
-        this.saveHistory(history);
+    // 删除历史记录(从服务器)
+    async deleteHistory(itemId) {
+        try {
+            const response = await fetch(`${CONFIG.api.baseUrl}/history/${itemId}`, {
+                method: 'DELETE'
+            });
+            const data = await response.json();
+            if (!data.success) {
+                throw new Error(data.message || '删除历史记录失败');
+            }
+        } catch (error) {
+            console.error('删除历史记录失败:', error);
+            throw error;
+        }
     }
 
-    // 删除历史记录
-    deleteHistory(itemId) {
-        const history = this.getHistory();
-        const filtered = history.filter(item => item.id !== itemId);
-        this.saveHistory(filtered);
-    }
-
-    // 清空历史记录
-    clearHistory() {
-        localStorage.removeItem(CONFIG.storage.history);
+    // 清空历史记录(从服务器)
+    async clearHistory() {
+        try {
+            const response = await fetch(`${CONFIG.api.baseUrl}/history/clear`, {
+                method: 'POST'
+            });
+            const data = await response.json();
+            if (!data.success) {
+                throw new Error(data.message || '清空历史记录失败');
+            }
+            return data.count;
+        } catch (error) {
+            console.error('清空历史记录失败:', error);
+            throw error;
+        }
     }
 
     // 获取设置

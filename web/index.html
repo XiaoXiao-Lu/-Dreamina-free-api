@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Dreamina AI 图片生成</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=11">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -219,7 +219,10 @@
                 </form>
             </div>
 
-            <!-- 生成进度 -->
+            <!-- 任务列表 -->
+            <div id="taskList"></div>
+
+            <!-- 生成进度 (旧版，保留兼容) -->
             <div class="card" id="progressCard" style="display: none;">
                 <h2 class="card-title">
                     <i class="fas fa-spinner fa-spin"></i> 生成中...
@@ -305,10 +308,10 @@
         </div>
     </div>
 
-    <script src="js/config.js?v=8"></script>
-    <script src="js/api.js?v=8"></script>
-    <script src="js/ui.js?v=8"></script>
-    <script src="js/app.js?v=8"></script>
+    <script src="js/config.js?v=11"></script>
+    <script src="js/api.js?v=11"></script>
+    <script src="js/ui.js?v=11"></script>
+    <script src="js/app.js?v=11"></script>
 </body>
 </html>
 

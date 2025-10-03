@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试并发生成 - Dreamina v9.0</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #f1f5f9;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #6366f1;
+        }
+
+        .card {
+            background: #1e293b;
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .test-section {
+            margin-bottom: 2rem;
+        }
+
+        .test-section h2 {
+            color: #8b5cf6;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+
+        .test-section p {
+            color: #cbd5e1;
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+
+        .btn {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .btn:hover {
+            background: #4f46e5;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #10b981;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-list li {
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: #334155;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .feature-list li::before {
+            content: '✅';
+            margin-right: 0.75rem;
+            font-size: 1.2rem;
+        }
+
+        .warning {
+            background: #f59e0b;
+            color: #0f172a;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+
+        .info {
+            background: #3b82f6;
+            color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .code {
+            background: #0f172a;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-family: 'Courier New', monospace;
+            color: #10b981;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+
+        .steps {
+            counter-reset: step;
+            list-style: none;
+        }
+
+        .steps li {
+            counter-increment: step;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            background: #334155;
+            border-radius: 0.5rem;
+            position: relative;
+            padding-left: 3rem;
+        }
+
+        .steps li::before {
+            content: counter(step);
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #6366f1;
+            color: white;
+            width: 1.5rem;
+            height: 1.5rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 测试并发生成功能 - v9.0</h1>
+
+        <div class="card">
+            <div class="warning">
+                ⚠️ 请确保已经在主页面添加了账号并选择了当前账号
+            </div>
+
+            <div class="test-section">
+                <h2>📋 新功能清单</h2>
+                <ul class="feature-list">
+                    <li>支持同时生成多批次图片</li>
+                    <li>每个任务独立显示进度</li>
+                    <li>可以随时取消任务</li>
+                    <li>自动检测生成失败</li>
+                    <li>连续错误快速失败</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="test-section">
+                <h2>🧪 测试 1: 并发生成</h2>
+                <p>测试是否可以同时生成多个任务</p>
+                
+                <div class="info">
+                    📝 测试步骤：
+                    <ol class="steps">
+                        <li>点击下方"打开主页面"按钮</li>
+                        <li>在主页面输入提示词 "一只可爱的小猫"</li>
+                        <li>点击"开始生成"</li>
+                        <li>立即修改提示词为 "一只帅气的小狗"</li>
+                        <li>再次点击"开始生成"</li>
+                        <li>观察是否出现两个任务卡片</li>
+                    </ol>
+                </div>
+
+                <button class="btn btn-success" onclick="window.open('/', '_blank')">
+                    打开主页面
+                </button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="test-section">
+                <h2>🧪 测试 2: 任务取消</h2>
+                <p>测试是否可以取消正在进行的任务</p>
+                
+                <div class="info">
+                    📝 测试步骤：
+                    <ol class="steps">
+                        <li>在主页面提交一个生成任务</li>
+                        <li>等待任务开始生成（进度 > 0%）</li>
+                        <li>点击任务卡片右上角的 ❌ 按钮</li>
+                        <li>观察任务是否立即停止并移除</li>
+                    </ol>
+                </div>
+
+                <button class="btn btn-success" onclick="window.open('/', '_blank')">
+                    打开主页面
+                </button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="test-section">
+                <h2>🧪 测试 3: 失败检测</h2>
+                <p>测试是否可以快速检测生成失败</p>
+                
+                <div class="info">
+                    📝 测试步骤：
+                    <ol class="steps">
+                        <li>在主页面提交一个任务</li>
+                        <li>如果生成失败，观察是否快速显示错误</li>
+                        <li>检查是否不再等待5分钟超时</li>
+                    </ol>
+                </div>
+
+                <div class="warning">
+                    ⚠️ 注意：此测试需要任务实际失败才能验证
+                </div>
+
+                <button class="btn btn-success" onclick="window.open('/', '_blank')">
+                    打开主页面
+                </button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="test-section">
+                <h2>📊 预期结果</h2>
+                
+                <h3 style="color: #10b981; margin-top: 1.5rem; margin-bottom: 0.5rem;">✅ 并发生成</h3>
+                <div class="code">
+任务列表显示：
+┌─────────────────────────────────────┐
+│ 🔄 任务 #1                      ❌  │
+│ 一只可爱的小猫咪...                  │
+│ ████████████░░░░░░░░ 60%           │
+│ 正在生成图片...                      │
+└─────────────────────────────────────┘
+
+┌─────────────────────────────────────┐
+│ 🔄 任务 #2                      ❌  │
+│ 一只帅气的小狗...                    │
+│ ██████░░░░░░░░░░░░░░ 30%           │
+│ 任务已提交...                        │
+└─────────────────────────────────────┘
+                </div>
+
+                <h3 style="color: #10b981; margin-top: 1.5rem; margin-bottom: 0.5rem;">✅ 任务取消</h3>
+                <div class="code">
+点击 ❌ 后：
+- 任务立即停止查询
+- 任务卡片淡出并移除
+- 显示提示: "任务 #1 已取消"
+                </div>
+
+                <h3 style="color: #10b981; margin-top: 1.5rem; margin-bottom: 0.5rem;">✅ 失败检测</h3>
+                <div class="code">
+失败任务显示：
+┌─────────────────────────────────────┐
+│ ⚠️ 任务 #1 - 失败                ❌  │
+│ 一只可爱的小猫咪...                  │
+│ ⚠️ 任务失败: invalid parameter      │
+└─────────────────────────────────────┘
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="test-section">
+                <h2>🎯 快速测试</h2>
+                <p>一键快速测试所有功能</p>
+                
+                <button class="btn btn-success" onclick="quickTest()">
+                    🚀 开始快速测试
+                </button>
+                
+                <div id="testResult" style="margin-top: 1rem;"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="test-section">
+                <h2>📚 相关文档</h2>
+                <button class="btn" onclick="window.open('并发生成功能说明.md', '_blank')">
+                    📖 功能说明
+                </button>
+                <button class="btn" onclick="window.open('最终完成报告-v9.md', '_blank')">
+                    📋 完成报告
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function quickTest() {
+            const resultDiv = document.getElementById('testResult');
+            resultDiv.innerHTML = `
+                <div class="info">
+                    <h3 style="margin-bottom: 0.5rem;">🧪 快速测试步骤：</h3>
+                    <ol class="steps">
+                        <li>打开主页面（已在新标签页打开）</li>
+                        <li>连续点击"开始生成"按钮 3 次</li>
+                        <li>观察是否出现 3 个任务卡片</li>
+                        <li>取消其中一个任务</li>
+                        <li>等待其他任务完成</li>
+                    </ol>
+                    <p style="margin-top: 1rem; font-weight: bold;">
+                        ✅ 如果所有步骤都正常，说明功能完全可用！
+                    </p>
+                </div>
+            `;
+            
+            // 打开主页面
+            window.open('/', '_blank');
+        }
+    </script>
+</body>
+</html>
+

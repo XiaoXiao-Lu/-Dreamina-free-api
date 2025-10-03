@@ -9,6 +9,8 @@ import os
 import sys
 import json
 import logging
+import time
+import datetime
 from pathlib import Path
 
 # 添加父目录到路径，以便导入核心模块
@@ -612,21 +614,52 @@ def check_status(task_id):
         # 调用 API 客户端查询状态
         result = api_client._get_generated_images(task_id)
 
+        # 添加调试日志
+        logger.debug(f"查询任务 {task_id} 状态,返回结果类型: {type(result)}, 内容: {result}")
+
+        # 检查是否是失败状态（字典类型且包含 failed 或 blocked 标志）
+        if isinstance(result, dict):
+            logger.debug(f"结果是字典,failed={result.get('failed')}, blocked={result.get('blocked')}")
+            if result.get('failed') or result.get('blocked'):
+                fail_code = str(result.get('fail_code', ''))
+                fail_msg = result.get('fail_msg', '生成失败')
+
+                # 特殊处理常见错误
+                error_message = fail_msg
+
+                # 根据错误代码提供友好提示
+                if fail_code == '2038' or fail_msg == 'InputTextRisk':
+                    error_message = '提示词包含敏感内容，请修改后重试'
+                elif fail_code == '1180':
+                    error_message = '提示词不符合规范，请修改后重试'
+                elif fail_code == '1000':
+                    error_message = '参数错误，请检查设置'
+                elif '不符合' in fail_msg or '规范' in fail_msg:
+                    error_message = '提示词不符合规范，请修改后重试'
+                elif 'risk' in fail_msg.lower() or '敏感' in fail_msg:
+                    error_message = '提示词包含敏感内容，请修改后重试'
+
+                logger.warning(f"任务 {task_id} 失败: {fail_code} - {fail_msg}")
+                logger.info(f"返回失败响应: failed=True, error={error_message}")
+
+                return jsonify({
+                    'success': True,
+                    'completed': False,
+                    'failed': True,
+                    'error': error_message,
+                    'fail_code': fail_code
+                })
+
+        # 检查是否返回了图片列表
         if isinstance(result, list) and result:
             return jsonify({
                 'success': True,
                 'completed': True,
                 'images': result
             })
-        elif result is None:
-            # 返回 None 表示任务不存在或已失败
-            return jsonify({
-                'success': True,
-                'completed': False,
-                'failed': True,
-                'error': '任务不存在或生成失败'
-            })
-        else:
+
+        # 返回 None 表示任务不存在或查询失败
+        if result is None:
             return jsonify({
                 'success': True,
                 'completed': False,
@@ -634,11 +667,19 @@ def check_status(task_id):
                 'message': '正在生成中...'
             })
 
+        # 其他情况，继续等待
+        return jsonify({
+            'success': True,
+            'completed': False,
+            'failed': False,
+            'message': '正在生成中...'
+        })
+
     except Exception as e:
         logger.error(f"查询状态失败: {e}")
         # 检查是否是 API 错误
         error_msg = str(e)
-        if 'invalid parameter' in error_msg.lower() or 'not found' in error_msg.lower():
+        if 'invalid parameter' in error_msg.lower() or 'not found' in error_msg.lower() or '不符合' in error_msg:
             return jsonify({
                 'success': True,
                 'completed': False,
@@ -648,6 +689,105 @@ def check_status(task_id):
         return jsonify({
             'success': False,
             'message': error_msg
+        }), 500
+
+# 历史记录管理
+history_records = []  # 全局历史记录列表
+MAX_HISTORY_RECORDS = 100  # 最多保存100条记录
+
+@app.route('/api/history', methods=['GET'])
+def get_history():
+    """获取历史记录"""
+    try:
+        # 返回最新的记录在前面
+        return jsonify({
+            'success': True,
+            'history': history_records
+        })
+    except Exception as e:
+        logger.error(f"获取历史记录失败: {e}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/api/history', methods=['POST'])
+def add_history():
+    """添加历史记录"""
+    try:
+        data = request.json
+
+        # 创建历史记录项
+        history_item = {
+            'id': str(int(time.time() * 1000)),  # 使用时间戳作为ID
+            'timestamp': datetime.datetime.now().isoformat(),
+            'prompt': data.get('prompt', ''),
+            'model': data.get('model', ''),
+            'resolution': data.get('resolution', ''),
+            'ratio': data.get('ratio', ''),
+            'mode': data.get('mode', 't2i'),
+            'images': data.get('images', []),
+            'historyId': data.get('historyId', '')
+        }
+
+        # 添加到列表开头(最新的在前面)
+        history_records.insert(0, history_item)
+
+        # 限制历史记录数量
+        if len(history_records) > MAX_HISTORY_RECORDS:
+            history_records.pop()
+
+        logger.info(f"添加历史记录: {history_item['id']}, 提示词: {history_item['prompt'][:50]}...")
+
+        return jsonify({
+            'success': True,
+            'id': history_item['id']
+        })
+    except Exception as e:
+        logger.error(f"添加历史记录失败: {e}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/api/history/<history_id>', methods=['DELETE'])
+def delete_history(history_id):
+    """删除历史记录"""
+    try:
+        global history_records
+        history_records = [h for h in history_records if h['id'] != history_id]
+
+        logger.info(f"删除历史记录: {history_id}")
+
+        return jsonify({
+            'success': True
+        })
+    except Exception as e:
+        logger.error(f"删除历史记录失败: {e}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/api/history/clear', methods=['POST'])
+def clear_history():
+    """清空历史记录"""
+    try:
+        global history_records
+        count = len(history_records)
+        history_records = []
+
+        logger.info(f"清空历史记录，共删除 {count} 条")
+
+        return jsonify({
+            'success': True,
+            'count': count
+        })
+    except Exception as e:
+        logger.error(f"清空历史记录失败: {e}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
         }), 500
 
 @app.route('/api/proxy/image', methods=['GET'])

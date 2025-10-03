@@ -1366,17 +1366,17 @@ class ApiClient:
             if task_status == 50:
                 logger.info(f"[Dreamina] ✅ 任务完成，解析图片URL")
                 image_urls = []
-                
+
                 # 从item_list中提取图片URL
                 item_list = history_data.get("item_list", [])
-                
+
                 if item_list:
                     logger.debug(f"[Dreamina] 🖼️ 找到{len(item_list)}个生成的图片")
                     for i, item in enumerate(item_list):
                         # 优先从image.large_images获取高质量图片
                         image = item.get("image", {})
                         large_images = image.get("large_images", [])
-                        
+
                         if large_images:
                             for j, large_image in enumerate(large_images):
                                 image_url = large_image.get("image_url")
@@ -1386,7 +1386,7 @@ class ApiClient:
                                     height = large_image.get("height", 0)
                                     format_type = large_image.get("format", "unknown")
                                     logger.debug(f"[Dreamina] ✅ 图片{i+1}: {width}x{height} {format_type}")
-                        
+
                         # 备用方案：从common_attr获取封面图
                         if not large_images:
                             common_attr = item.get("common_attr", {})
@@ -1394,14 +1394,20 @@ class ApiClient:
                             if cover_url:
                                 image_urls.append(cover_url)
                                 logger.debug(f"[Dreamina] ✅ 备用图片{i+1}")
-                
+
                 if image_urls:
                     logger.info(f"[Dreamina] ✅ 获取到{len(image_urls)}个图片URL")
                     return image_urls
                 else:
                     logger.error("[Dreamina] ❌ 未找到任何图片URL")
                     return None
-                    
+
+            elif task_status == 30:  # 任务失败
+                logger.error(f"[Dreamina] ❌ 任务失败，状态: {task_status}")
+                logger.error(f"[Dreamina] 📊 失败详情: fail_code={fail_code}, fail_msg={fail_starling_message}")
+                # 返回失败信息而不是None,让上层能够检测到失败
+                return {"failed": True, "fail_code": str(fail_code) if fail_code else "30", "fail_msg": fail_starling_message or "任务生成失败"}
+
             else:
                 # 其他状态码表示任务未完成
                 if task_status == 20:
@@ -1545,7 +1551,8 @@ class ApiClient:
             elif status == 30:  # 任务失败
                 logger.error(f"[Dreamina] ❌ 任务失败，状态: {status}")
                 logger.error(f"[Dreamina] 📊 失败详情: fail_code={fail_code}, fail_msg={fail_msg}")
-                return None
+                # 返回失败信息而不是None,让上层能够检测到失败
+                return {"failed": True, "fail_code": str(fail_code) if fail_code else "30", "fail_msg": fail_msg or "任务生成失败"}
             elif status == 20:  # 任务处理中
                 logger.info(f"[Dreamina] ⏳ 任务仍在处理中，状态: {status}")
                 return None

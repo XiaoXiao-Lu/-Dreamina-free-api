@@ -64,6 +64,9 @@ class UIManager {
         this.saveServerUrl = document.getElementById('saveServerUrl');
         this.resetServerUrl = document.getElementById('resetServerUrl');
 
+        // 任务列表
+        this.taskList = document.getElementById('taskList');
+
         // Toast和加载
         this.toast = document.getElementById('toast');
         this.loadingOverlay = document.getElementById('loadingOverlay');
@@ -451,33 +454,68 @@ class UIManager {
     }
 
     // 渲染历史记录
-    renderHistory() {
-        const history = storage.getHistory();
-        
-        if (history.length === 0) {
-            this.historyList.innerHTML = '<p class="empty-text">暂无历史记录</p>';
-            return;
+    async renderHistory() {
+        try {
+            const history = await storage.getHistory();
+
+            if (history.length === 0) {
+                this.historyList.innerHTML = '<p class="empty-text">暂无历史记录</p>';
+                return;
+            }
+
+            this.historyList.innerHTML = history.map(item => `
+                <div class="history-item">
+                    <div class="history-item-content" onclick="ui.loadHistoryItem('${item.id}')">
+                        <div><strong>${item.prompt.substring(0, 50)}${item.prompt.length > 50 ? '...' : ''}</strong></div>
+                        <div class="text-muted">${new Date(item.timestamp).toLocaleString()}</div>
+                        <div class="text-muted">模型: ${item.model} | ${item.resolution} | ${item.ratio}</div>
+                    </div>
+                    <div class="history-item-images">
+                        ${(item.images || []).slice(0, 4).map(img => `
+                            <img src="${this.getProxyImageUrl(img)}" alt="历史图片" onclick="ui.showImagePreview('${this.getProxyImageUrl(img)}')">
+                        `).join('')}
+                    </div>
+                    <button class="btn-delete-history" onclick="ui.deleteHistoryItem('${item.id}')" title="删除">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `).join('');
+        } catch (error) {
+            console.error('渲染历史记录失败:', error);
+            this.historyList.innerHTML = '<p class="empty-text error">加载历史记录失败</p>';
         }
-        
-        this.historyList.innerHTML = history.map(item => `
-            <div class="history-item" onclick="ui.loadHistoryItem('${item.id}')">
-                <div><strong>${item.prompt.substring(0, 50)}...</strong></div>
-                <div class="text-muted">${new Date(item.timestamp).toLocaleString()}</div>
-            </div>
-        `).join('');
     }
 
     // 加载历史记录项
-    loadHistoryItem(itemId) {
-        const history = storage.getHistory();
-        const item = history.find(h => h.id === itemId);
+    async loadHistoryItem(itemId) {
+        try {
+            const history = await storage.getHistory();
+            const item = history.find(h => h.id === itemId);
 
-        if (item) {
-            this.promptInput.value = item.prompt;
-            this.modelSelect.value = item.model;
-            this.resolutionSelect.value = item.resolution;
-            this.ratioSelect.value = item.ratio;
-            this.showToast('已加载历史记录', 'success');
+            if (item) {
+                this.promptInput.value = item.prompt;
+                this.modelSelect.value = item.model;
+                this.resolutionSelect.value = item.resolution;
+                this.ratioSelect.value = item.ratio;
+                this.showToast('已加载历史记录', 'success');
+            }
+        } catch (error) {
+            console.error('加载历史记录失败:', error);
+            this.showToast('加载历史记录失败', 'error');
+        }
+    }
+
+    // 删除历史记录项
+    async deleteHistoryItem(itemId) {
+        if (confirm('确定要删除这条历史记录吗？')) {
+            try {
+                await storage.deleteHistory(itemId);
+                await this.renderHistory();
+                this.showToast('历史记录已删除', 'success');
+            } catch (error) {
+                console.error('删除历史记录失败:', error);
+                this.showToast('删除历史记录失败', 'error');
+            }
         }
     }
 
@@ -523,6 +561,156 @@ class UIManager {
                 window.location.reload();
             }, 3000);
         }
+    }
+
+    // ===== 多任务管理 =====
+
+    // 创建任务卡片
+    createTaskCard(taskId, prompt) {
+        const card = document.createElement('div');
+        card.className = 'card task-card';
+        card.id = `task-${taskId}`;
+        card.innerHTML = `
+            <div class="task-header">
+                <h3 class="task-title">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    任务 #${taskId}
+                </h3>
+                <button class="btn-icon" onclick="app.cancelTask(${taskId})" title="取消任务">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <p class="task-prompt">${this.escapeHtml(prompt.substring(0, 100))}${prompt.length > 100 ? '...' : ''}</p>
+            <div class="progress-bar">
+                <div class="progress-fill" id="task-progress-${taskId}"></div>
+            </div>
+            <p class="progress-text" id="task-text-${taskId}">正在提交任务...</p>
+            <div class="task-result" id="task-result-${taskId}" style="display: none;"></div>
+        `;
+
+        // 插入到列表顶部（最新的任务在最上面）
+        if (this.taskList.firstChild) {
+            this.taskList.insertBefore(card, this.taskList.firstChild);
+        } else {
+            this.taskList.appendChild(card);
+        }
+
+        // 滚动到任务卡片
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // 更新任务进度
+    updateTaskProgress(taskId, progress, message) {
+        const progressFill = document.getElementById(`task-progress-${taskId}`);
+        const progressText = document.getElementById(`task-text-${taskId}`);
+
+        if (progressFill) {
+            progressFill.style.width = `${progress}%`;
+        }
+
+        if (progressText) {
+            progressText.textContent = message;
+        }
+    }
+
+    // 显示任务结果
+    showTaskResult(taskId, result) {
+        const card = document.getElementById(`task-${taskId}`);
+        if (!card) return;
+
+        // 更新标题
+        const title = card.querySelector('.task-title');
+        if (title) {
+            title.innerHTML = `<i class="fas fa-check-circle" style="color: #10b981;"></i> 任务 #${taskId} - 完成`;
+        }
+
+        // 隐藏进度条
+        const progressBar = card.querySelector('.progress-bar');
+        const progressText = card.querySelector('.progress-text');
+        if (progressBar) progressBar.style.display = 'none';
+        if (progressText) progressText.style.display = 'none';
+
+        // 显示结果
+        const resultDiv = document.getElementById(`task-result-${taskId}`);
+        if (resultDiv && result.images) {
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = `
+                <div class="result-info">
+                    <span><i class="fas fa-images"></i> ${result.images.length} 张图片</span>
+                    <span><i class="fas fa-clock"></i> ${result.duration}秒</span>
+                </div>
+                <div class="image-grid">
+                    ${result.images.map(img => `
+                        <div class="image-item">
+                            <img src="${this.getProxyImageUrl(img)}" alt="生成的图片" onclick="ui.showImagePreview('${img}')">
+                            <div class="image-actions">
+                                <button onclick="ui.downloadImage('${img}')" title="下载">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // 移除取消按钮
+        const cancelBtn = card.querySelector('.btn-icon');
+        if (cancelBtn) cancelBtn.remove();
+    }
+
+    // 显示任务错误
+    showTaskError(taskId, errorMessage) {
+        const card = document.getElementById(`task-${taskId}`);
+        if (!card) return;
+
+        // 更新标题
+        const title = card.querySelector('.task-title');
+        if (title) {
+            title.innerHTML = `<i class="fas fa-exclamation-circle" style="color: #ef4444;"></i> 任务 #${taskId} - 失败`;
+        }
+
+        // 隐藏进度条
+        const progressBar = card.querySelector('.progress-bar');
+        if (progressBar) progressBar.style.display = 'none';
+
+        // 显示错误信息
+        const progressText = card.querySelector('.progress-text');
+        if (progressText) {
+            progressText.style.color = '#ef4444';
+            progressText.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${this.escapeHtml(errorMessage)}`;
+        }
+
+        // 移除取消按钮，添加关闭按钮
+        const cancelBtn = card.querySelector('.btn-icon');
+        if (cancelBtn) {
+            cancelBtn.onclick = () => this.removeTaskCard(taskId);
+            cancelBtn.title = '关闭';
+        }
+    }
+
+    // 移除任务卡片
+    removeTaskCard(taskId) {
+        const card = document.getElementById(`task-${taskId}`);
+        if (card) {
+            card.style.opacity = '0';
+            card.style.transform = 'translateX(100%)';
+            setTimeout(() => card.remove(), 300);
+        }
+    }
+
+    // HTML转义
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // 获取代理图片URL
+    getProxyImageUrl(originalUrl) {
+        const serverUrl = localStorage.getItem('dreamina_server_url') || '';
+        const baseUrl = serverUrl || window.location.origin;
+        return `${baseUrl}/api/proxy/image?url=${encodeURIComponent(originalUrl)}`;
     }
 }
 
