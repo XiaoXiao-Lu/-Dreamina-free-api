@@ -173,6 +173,12 @@ class UIManager {
         // 历史记录滚动监听
         this.initHistoryScroll();
 
+        // 清空历史记录按钮
+        const clearAllHistoryBtn = document.getElementById('clearAllHistoryBtn');
+        if (clearAllHistoryBtn) {
+            clearAllHistoryBtn.addEventListener('click', () => this.clearAllHistory());
+        }
+
         // 返回顶部按钮
         this.initBackToTop();
 
@@ -1058,7 +1064,10 @@ class UIManager {
                     <div class="history-item-content" onclick="ui.loadHistoryItem('${item.id}')">
                         <div><strong>${item.prompt.substring(0, 50)}${item.prompt.length > 50 ? '...' : ''}</strong></div>
                         <div class="text-muted">${new Date(item.timestamp).toLocaleString()}</div>
-                        <div class="text-muted">模型: ${item.model} | ${item.resolution} | ${item.ratio}</div>
+                        <div class="text-muted">
+                            模型: ${item.model} | ${item.resolution} | ${item.ratio}
+                            ${item.duration ? ` | <i class="fas fa-clock"></i> ${item.duration}秒` : ''}
+                        </div>
                     </div>
                     <div class="history-item-images">
                         ${(item.images || []).slice(0, 4).map((img, idx) => {
@@ -1151,6 +1160,56 @@ class UIManager {
                 console.error('删除历史记录失败:', error);
                 this.showToast('删除历史记录失败', 'error');
             }
+        }
+    }
+
+    // 清空所有历史记录
+    async clearAllHistory() {
+        // 检查是否有历史记录
+        if (!this.allHistory || this.allHistory.length === 0) {
+            this.showToast('没有历史记录可删除', 'warning');
+            return;
+        }
+
+        // 显示确认对话框
+        const confirmMessage = `⚠️ 警告\n\n确定要删除所有 ${this.allHistory.length} 条历史记录吗？\n\n此操作不可恢复！`;
+
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+
+        // 二次确认
+        const doubleConfirm = confirm('再次确认：真的要删除所有历史记录吗？');
+        if (!doubleConfirm) {
+            return;
+        }
+
+        try {
+            // 显示加载提示
+            this.showToast('正在删除...', 'info');
+
+            // 调用API删除所有历史记录
+            const response = await fetch('/api/history/clear', {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                throw new Error('删除失败');
+            }
+
+            const result = await response.json();
+
+            // 清空本地数据
+            this.allHistory = [];
+            this.historyDisplayCount = 10;
+
+            // 重新渲染
+            await this.renderHistory(true);
+
+            this.showToast(`成功删除 ${result.deleted_count || 0} 条历史记录`, 'success');
+        } catch (error) {
+            console.error('清空历史记录失败:', error);
+            this.showToast('清空失败: ' + error.message, 'error');
         }
     }
 

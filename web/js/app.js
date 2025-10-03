@@ -347,7 +347,8 @@ class DreaminaApp {
                         ratio: taskInfo.formData.ratio,
                         mode: taskInfo.mode,
                         images: result.images,
-                        historyId: result.historyId || ''
+                        historyId: result.historyId || '',
+                        duration: duration  // 添加耗时
                     });
                     await ui.renderHistory(true); // 重新加载历史记录
                 } catch (error) {
@@ -389,7 +390,8 @@ class DreaminaApp {
                     ratio: taskInfo.formData.ratio,
                     mode: taskInfo.mode,
                     images: result.images,
-                    historyId: result.historyId || ''
+                    historyId: result.historyId || '',
+                    duration: duration  // 添加耗时
                 });
                 await ui.renderHistory(true); // 重新加载历史记录
             } catch (error) {

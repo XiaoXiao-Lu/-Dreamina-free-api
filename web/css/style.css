@@ -235,6 +235,19 @@ div, section, article, aside, header, footer, main, nav {
     color: var(--primary-color);
 }
 
+.card-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    gap: 1rem;
+}
+
+.card-title-row .card-title {
+    margin-bottom: 0;
+    flex: 1;
+}
+
 /* 表单 */
 .form-group {
     margin-bottom: 1.5rem;
@@ -505,6 +518,22 @@ textarea.form-control {
 
 .btn-secondary:hover {
     background: var(--border-color);
+}
+
+.btn-danger-outline {
+    background: transparent;
+    color: #ef4444;
+    border: 1px solid #ef4444;
+}
+
+.btn-danger-outline:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: #dc2626;
+    color: #dc2626;
+}
+
+.btn-danger-outline:active {
+    background: rgba(239, 68, 68, 0.2);
 }
 
 .btn-large {

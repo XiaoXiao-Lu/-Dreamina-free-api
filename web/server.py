@@ -921,6 +921,13 @@ def add_history():
                     'thumbnail': None
                 })
 
+        # 检查是否已存在相同的historyId(去重)
+        history_id_to_check = data.get('historyId', '')
+        if history_id_to_check:
+            # 删除已存在的相同historyId的记录
+            global history_records
+            history_records = [h for h in history_records if h.get('historyId') != history_id_to_check]
+
         # 创建历史记录项
         history_item = {
             'id': str(int(time.time() * 1000)),  # 使用时间戳作为ID
@@ -931,7 +938,8 @@ def add_history():
             'ratio': data.get('ratio', ''),
             'mode': data.get('mode', 't2i'),
             'images': local_images,  # 保存包含本地文件名的图片信息
-            'historyId': data.get('historyId', '')
+            'historyId': history_id_to_check,
+            'duration': data.get('duration', None)  # 保存耗时
         }
 
         # 添加到列表开头(最新的在前面)
@@ -979,9 +987,9 @@ def delete_history(history_id):
             'message': str(e)
         }), 500
 
-@app.route('/api/history/clear', methods=['POST'])
+@app.route('/api/history/clear', methods=['DELETE', 'POST'])
 def clear_history():
-    """清空历史记录"""
+    """清空所有历史记录"""
     try:
         global history_records
         count = len(history_records)
@@ -994,7 +1002,8 @@ def clear_history():
 
         return jsonify({
             'success': True,
-            'count': count
+            'deleted_count': count,
+            'message': f'已清空 {count} 条历史记录'
         })
     except Exception as e:
         logger.error(f"清空历史记录失败: {e}")

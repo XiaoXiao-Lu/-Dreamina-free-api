@@ -248,9 +248,14 @@
 
             <!-- 历史记录 -->
             <div class="card">
-                <h2 class="card-title">
-                    <i class="fas fa-history"></i> 历史记录
-                </h2>
+                <div class="card-title-row">
+                    <h2 class="card-title">
+                        <i class="fas fa-history"></i> 历史记录
+                    </h2>
+                    <button class="btn btn-danger-outline" id="clearAllHistoryBtn" title="清空所有历史记录">
+                        <i class="fas fa-trash-alt"></i> 清空历史
+                    </button>
+                </div>
                 <div class="history-list" id="historyList">
                     <p class="empty-text">暂无历史记录</p>
                 </div>
