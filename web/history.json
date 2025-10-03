@@ -1,35 +1,35 @@
 [
   {
-    "id": "1759517789421",
-    "timestamp": "2025-10-04T02:56:29.421323",
-    "prompt": "一只可爱的小猫咪85",
+    "id": "1759518422220",
+    "timestamp": "2025-10-04T03:07:02.220851",
+    "prompt": "一只可爱的小猫咪",
     "model": "4.0",
     "resolution": "4k",
     "ratio": "16:9",
     "mode": "t2i",
     "images": [
       {
-        "original": "https://p16-dreamina-sign-sg.ibyteimg.com/tos-alisg-i-wopfjsm1ax-sg/c4a4a453c8a14c78863f0b76a5dfef3a~tplv-wopfjsm1ax-aigc_resize:0:0.jpeg?lk3s=43402efa&x-expires=1761264000&x-signature=t89nnkzZzYVk7XOKdCf530Ujphw%3D&format=.jpeg",
-        "local": "cf8b3c7992628b9ff7cf58a7ad239daa.jpeg",
-        "thumbnail": "cf8b3c7992628b9ff7cf58a7ad239daa_thumb.jpg"
+        "original": "https://p16-dreamina-sign-sg.ibyteimg.com/tos-alisg-i-wopfjsm1ax-sg/cea476522a0a49bcb3d653688c482b65~tplv-wopfjsm1ax-aigc_resize:0:0.jpeg?lk3s=43402efa&x-expires=1761264000&x-signature=CDuLQKRxc9HY0iMsbTs61yWTTsI%3D&format=.jpeg",
+        "local": "178fc157a3c9176857b122afb2576769.jpeg",
+        "thumbnail": "178fc157a3c9176857b122afb2576769_thumb.jpg"
       },
       {
-        "original": "https://p16-dreamina-sign-sg.ibyteimg.com/tos-alisg-i-wopfjsm1ax-sg/a8ec3ca294014d43bb77fde73c143f6e~tplv-wopfjsm1ax-aigc_resize:0:0.jpeg?lk3s=43402efa&x-expires=1761264000&x-signature=W0cDHSqQaUGqQGT6fXyJFrN8CvM%3D&format=.jpeg",
-        "local": "e159535f92615761cbd0dd85b348c377.jpeg",
-        "thumbnail": "e159535f92615761cbd0dd85b348c377_thumb.jpg"
+        "original": "https://p16-dreamina-sign-sg.ibyteimg.com/tos-alisg-i-wopfjsm1ax-sg/04b63674ae80421e98a3a656a4e493d8~tplv-wopfjsm1ax-aigc_resize:0:0.jpeg?lk3s=43402efa&x-expires=1761264000&x-signature=nUVyqW2YPDkotiCJmpsVb%2BCmnhc%3D&format=.jpeg",
+        "local": "82d5d39baa7c3adb0d0d5b861c4ff6e6.jpeg",
+        "thumbnail": "82d5d39baa7c3adb0d0d5b861c4ff6e6_thumb.jpg"
       },
       {
-        "original": "https://p16-dreamina-sign-sg.ibyteimg.com/tos-alisg-i-wopfjsm1ax-sg/5e5ea8f95bf7427a89ed4792812e1cca~tplv-wopfjsm1ax-aigc_resize:0:0.jpeg?lk3s=43402efa&x-expires=1761264000&x-signature=lB%2Bcejn3oxdc1%2BLeJBOoNRlc89w%3D&format=.jpeg",
-        "local": "61573bf52a9031d53ad8903a4874c028.jpeg",
-        "thumbnail": "61573bf52a9031d53ad8903a4874c028_thumb.jpg"
+        "original": "https://p19-dreamina-sign-sg.ibyteimg.com/tos-alisg-i-wopfjsm1ax-sg/089eae2c0fef42e7b7da01d3f48ddbb3~tplv-wopfjsm1ax-aigc_resize:0:0.jpeg?lk3s=43402efa&x-expires=1761264000&x-signature=GJzcpBa1rVq3h%2FeFmhaDDD%2FnelA%3D&format=.jpeg",
+        "local": "6bdfcdde86e70fc6dd8ddd2558778123.jpeg",
+        "thumbnail": "6bdfcdde86e70fc6dd8ddd2558778123_thumb.jpg"
       },
       {
-        "original": "https://p16-dreamina-sign-sg.ibyteimg.com/tos-alisg-i-wopfjsm1ax-sg/42134b52e8854618a4e162ed7dd6eda4~tplv-wopfjsm1ax-aigc_resize:0:0.jpeg?lk3s=43402efa&x-expires=1761264000&x-signature=YSPOK8JbU0rl87XARBQKtCGpIrE%3D&format=.jpeg",
-        "local": "a761662c414182505676c3b66be75c0a.jpeg",
-        "thumbnail": "a761662c414182505676c3b66be75c0a_thumb.jpg"
+        "original": "https://p16-dreamina-sign-sg.ibyteimg.com/tos-alisg-i-wopfjsm1ax-sg/6ae244e88b1b43f88331477f3799526e~tplv-wopfjsm1ax-aigc_resize:0:0.jpeg?lk3s=43402efa&x-expires=1761264000&x-signature=F0%2Fbl%2FfWu4JvYk0Z5shWBd7HD3o%3D&format=.jpeg",
+        "local": "2a9c7d622320e7bee1a4bec9d4d3410f.jpeg",
+        "thumbnail": "2a9c7d622320e7bee1a4bec9d4d3410f_thumb.jpg"
       }
     ],
-    "historyId": "d19ece01-2090-4c8f-9a02-3e9acafc99b5",
-    "duration": "30.9"
+    "historyId": "85e2aa70-582e-4483-800a-bab87f414b4b",
+    "duration": "28.0"
   }
 ]

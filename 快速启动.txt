@@ -1,0 +1,90 @@
+═══════════════════════════════════════════════════════════
+  Dreamina AI - 快速启动指南
+═══════════════════════════════════════════════════════════
+
+【第一次使用】
+
+1. 安装依赖
+   双击: install_dependencies.bat
+
+2. 配置 Token
+   - 复制 config.json.template 为 config.json
+   - 编辑 config.json,填入你的 Dreamina token
+
+3. 启动服务器 (选择一种方式)
+   
+   ✅ 推荐: start_server_background.vbs (静默后台)
+   - 完全静默,无窗口
+   - 弹窗提示成功
+   
+   或: start_server_background.bat (后台)
+   - 后台运行
+   - 显示启动信息
+   
+   或: start_server.bat (前台)
+   - 显示控制台
+   - 可看日志
+
+4. 访问界面
+   浏览器打开: http://localhost:5000
+
+5. 停止服务器
+   双击: stop_server.bat
+
+───────────────────────────────────────────────────────────
+
+【日常使用】
+
+启动: start_server_background.vbs (双击)
+访问: http://localhost:5000
+停止: stop_server.bat (双击)
+状态: check_server_status.bat (双击)
+
+───────────────────────────────────────────────────────────
+
+【三种启动方式对比】
+
+1. start_server.bat (前台)
+   优点: 可以看到日志,方便调试
+   缺点: 关闭窗口就停止服务器
+   适合: 开发调试
+
+2. start_server_background.bat (后台)
+   优点: 后台运行,有启动提示
+   缺点: 有一个启动窗口
+   适合: 日常使用
+
+3. start_server_background.vbs (静默)
+   优点: 完全静默,最简洁
+   缺点: 看不到启动过程
+   适合: 熟练用户
+
+───────────────────────────────────────────────────────────
+
+【常见问题】
+
+Q: 如何知道服务器是否在运行?
+A: 双击 check_server_status.bat
+
+Q: 端口被占用怎么办?
+A: netstat -ano | findstr :5000
+   taskkill /PID <进程ID> /F
+
+Q: Token 在哪里获取?
+A: 1. 访问 https://dreamina.com
+   2. 登录账号
+   3. F12 打开开发者工具
+   4. Network 标签
+   5. 查找请求头中的 token
+
+Q: 依赖安装失败?
+A: 使用国内镜像:
+   pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+   pip install -r web/requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+───────────────────────────────────────────────────────────
+
+详细文档: STARTUP_GUIDE.md
+
+═══════════════════════════════════════════════════════════
+
