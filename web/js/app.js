@@ -356,6 +356,9 @@ class DreaminaApp {
                 }
 
                 ui.showToast(`任务 #${taskId} 生成成功！`, 'success');
+
+                // 立即删除任务卡片
+                ui.removeTaskCard(taskId);
                 return;
             }
 
@@ -401,10 +404,8 @@ class DreaminaApp {
 
             ui.showToast(`任务 #${taskId} 生成成功！`, 'success');
 
-            // 3秒后自动删除任务卡片
-            setTimeout(() => {
-                ui.removeTaskCard(taskId);
-            }, 3000);
+            // 立即删除任务卡片
+            ui.removeTaskCard(taskId);
 
         } catch (error) {
             console.error(`任务 #${taskId} 生成失败:`, error);
