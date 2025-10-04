@@ -30,7 +30,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-72x72.png">
 
     <title>Dreamina AI 图片生成</title>
-    <link rel="stylesheet" href="css/style.css?v=16">
+    <link rel="stylesheet" href="css/style.css?v=18">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -375,10 +375,23 @@
         </div>
     </div>
 
-    <script src="js/config.js?v=11"></script>
-    <script src="js/api.js?v=11"></script>
-    <script src="js/ui.js?v=11"></script>
-    <script src="js/app.js?v=11"></script>
+    <script src="js/config.js?v=13"></script>
+    <script src="js/api.js?v=13"></script>
+    <script src="js/ui.js?v=13"></script>
+    <script src="js/app.js?v=13"></script>
+
+    <!-- 版本检查 -->
+    <script>
+        console.log('=== Dreamina AI 版本信息 ===');
+        console.log('CSS 版本: v=17');
+        console.log('JS 版本: v=12');
+        console.log('新功能: 新生成照片标记');
+        console.log('检查 storage 对象:', typeof storage !== 'undefined' ? '✅ 已加载' : '❌ 未加载');
+        console.log('检查 markHistoryAsViewed 方法:',
+            typeof storage !== 'undefined' && typeof storage.markHistoryAsViewed === 'function' ?
+            '✅ 存在' : '❌ 不存在');
+        console.log('===========================');
+    </script>
 
     <!-- PWA Service Worker 注册 -->
     <script>

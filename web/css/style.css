@@ -648,6 +648,65 @@ textarea.form-control {
     overflow: hidden;
 }
 
+/* 新生成的历史记录卡片 */
+.history-item-new {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+    border: 2px solid rgba(102, 126, 234, 0.5);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    animation: newItemPulse 2s ease-in-out infinite;
+}
+
+@keyframes newItemPulse {
+    0%, 100% {
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    }
+    50% {
+        box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+    }
+}
+
+/* 新标记徽章 */
+.new-badge {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+    z-index: 10;
+    animation: badgeBounce 1s ease-in-out infinite;
+}
+
+@keyframes badgeBounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-3px);
+    }
+}
+
+.new-badge i {
+    font-size: 0.7rem;
+    animation: badgeSpin 3s linear infinite;
+}
+
+@keyframes badgeSpin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
 .history-item-content {
     cursor: pointer;
     margin-bottom: 0.75rem;
@@ -1149,6 +1208,8 @@ textarea.form-control {
     display: none;
     flex-direction: column;
     overflow: hidden;
+    /* 支持滑动关闭时的背景色过渡 */
+    transition: background-color 0.3s ease;
 }
 
 .fullscreen-viewer.active {
@@ -1224,7 +1285,7 @@ textarea.form-control {
 .fullscreen-loading {
     position: absolute;
     top: 2rem;
-    right: 2rem;
+    left: 2rem;  /* 改到左上角,避免挡住关闭按钮 */
     z-index: 10001;
 }
 
@@ -1282,7 +1343,7 @@ textarea.form-control {
 @media (max-width: 768px) {
     .fullscreen-loading {
         top: 1rem;
-        right: 1rem;
+        left: 1rem;  /* 手机端也在左上角 */
     }
 
     .loading-badge {

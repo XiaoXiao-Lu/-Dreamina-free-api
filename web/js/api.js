@@ -289,6 +289,10 @@ class StorageManager {
     // 添加历史记录(到服务器)
     async addHistory(item) {
         try {
+            // 添加 isNew 标记
+            item.isNew = true;
+            console.log('[Storage] 添加历史记录,isNew:', item.isNew);
+
             const response = await fetch(`${CONFIG.api.baseUrl}/history`, {
                 method: 'POST',
                 headers: {
@@ -300,10 +304,26 @@ class StorageManager {
             if (!data.success) {
                 throw new Error(data.message || '添加历史记录失败');
             }
+            console.log('[Storage] 历史记录已保存,ID:', data.id);
             return data.id;
         } catch (error) {
             console.error('添加历史记录失败:', error);
             throw error;
+        }
+    }
+
+    // 标记历史记录为已查看
+    async markHistoryAsViewed(itemId) {
+        try {
+            const response = await fetch(`${CONFIG.api.baseUrl}/history/${itemId}/viewed`, {
+                method: 'POST'
+            });
+            const data = await response.json();
+            if (!data.success) {
+                console.error('标记历史记录失败:', data.message);
+            }
+        } catch (error) {
+            console.error('标记历史记录失败:', error);
         }
     }
 
@@ -355,4 +375,9 @@ class StorageManager {
 // 创建全局实例
 const api = new DreaminaAPI();
 const storage = new StorageManager();
+
+// 验证对象已创建
+console.log('[API] DreaminaAPI 实例已创建');
+console.log('[API] StorageManager 实例已创建');
+console.log('[API] storage.markHistoryAsViewed 方法:', typeof storage.markHistoryAsViewed);
 

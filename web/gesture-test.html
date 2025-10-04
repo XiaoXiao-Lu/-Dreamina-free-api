@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>手势测试 - Dreamina AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 1rem;
+            font-size: 1.8rem;
+        }
+
+        .info {
+            background: #f0f7ff;
+            border-left: 4px solid #667eea;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            border-radius: 0.5rem;
+        }
+
+        .info h3 {
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .info ul {
+            margin-left: 1.5rem;
+            color: #666;
+        }
+
+        .info li {
+            margin: 0.5rem 0;
+        }
+
+        .test-images {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .test-image {
+            aspect-ratio: 1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 0.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 3rem;
+            transition: transform 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .test-image:hover {
+            transform: scale(1.05);
+        }
+
+        .test-image::after {
+            content: '点击查看';
+            position: absolute;
+            bottom: 0.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        /* 全屏查看器 */
+        .fullscreen-viewer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            transition: background-color 0.3s ease;
+        }
+
+        .fullscreen-viewer.active {
+            display: flex;
+        }
+
+        .fullscreen-viewer-header {
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .fullscreen-close {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: none;
+            width: 3rem;
+            height: 3rem;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.5rem;
+        }
+
+        .gesture-hint {
+            color: white;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .fullscreen-viewer-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .fullscreen-image {
+            max-width: 90vw;
+            max-height: 80vh;
+            width: auto;
+            height: auto;
+            border-radius: 0.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .status {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 2rem;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 10000;
+        }
+
+        .status.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 手势操作测试</h1>
+        
+        <div class="info">
+            <h3>✨ 新功能: 向下滑动关闭</h3>
+            <ul>
+                <li>点击下方图片打开全屏查看</li>
+                <li><strong>向下滑动</strong>可以关闭查看器</li>
+                <li>滑动时图片会跟随移动</li>
+                <li>背景透明度会实时变化</li>
+                <li>滑动超过100px自动关闭</li>
+            </ul>
+        </div>
+
+        <div class="info">
+            <h3>🎮 其他操作</h3>
+            <ul>
+                <li>双击: 缩放图片</li>
+                <li>双指: 缩放图片</li>
+                <li>点击 ✕: 关闭</li>
+                <li>点击背景: 关闭</li>
+            </ul>
+        </div>
+
+        <div class="test-images">
+            <div class="test-image" data-index="1">🎨</div>
+            <div class="test-image" data-index="2">🌈</div>
+            <div class="test-image" data-index="3">🎭</div>
+            <div class="test-image" data-index="4">🎪</div>
+        </div>
+    </div>
+
+    <!-- 全屏查看器 -->
+    <div class="fullscreen-viewer" id="viewer">
+        <div class="fullscreen-viewer-header">
+            <div class="gesture-hint">👆 向下滑动关闭</div>
+            <button class="fullscreen-close" id="closeBtn">✕</button>
+        </div>
+        <div class="fullscreen-viewer-content">
+            <div class="fullscreen-image" id="image"></div>
+        </div>
+    </div>
+
+    <!-- 状态提示 -->
+    <div class="status" id="status"></div>
+
+    <script>
+        const viewer = document.getElementById('viewer');
+        const image = document.getElementById('image');
+        const closeBtn = document.getElementById('closeBtn');
+        const status = document.getElementById('status');
+        const testImages = document.querySelectorAll('.test-image');
+
+        // 显示状态
+        function showStatus(text) {
+            status.textContent = text;
+            status.classList.add('show');
+            setTimeout(() => status.classList.remove('show'), 2000);
+        }
+
+        // 打开查看器
+        testImages.forEach(img => {
+            img.addEventListener('click', () => {
+                const emoji = img.textContent.trim().split('\n')[0];
+                image.textContent = emoji;
+                image.style.fontSize = '10rem';
+                viewer.classList.add('active');
+                showStatus('已打开,试试向下滑动关闭');
+            });
+        });
+
+        // 关闭查看器
+        function closeViewer() {
+            viewer.classList.remove('active');
+            viewer.style.backgroundColor = '';
+            image.style.transition = '';
+            image.style.transform = '';
+        }
+
+        closeBtn.addEventListener('click', closeViewer);
+        viewer.addEventListener('click', (e) => {
+            if (e.target === viewer) closeViewer();
+        });
+
+        // 滑动手势
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchEndX = 0;
+        let touchEndY = 0;
+        let isSwiping = false;
+        let isVerticalSwipe = false;
+
+        viewer.addEventListener('touchstart', (e) => {
+            if (!viewer.classList.contains('active')) return;
+            
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            touchEndX = touchStartX;
+            touchEndY = touchStartY;
+            isSwiping = true;
+            isVerticalSwipe = false;
+        });
+
+        viewer.addEventListener('touchmove', (e) => {
+            if (!isSwiping) return;
+
+            touchEndX = e.touches[0].clientX;
+            touchEndY = e.touches[0].clientY;
+
+            const deltaX = touchEndX - touchStartX;
+            const deltaY = touchEndY - touchStartY;
+
+            // 判断是否为垂直滑动
+            if (!isVerticalSwipe && Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 10) {
+                isVerticalSwipe = true;
+            }
+
+            // 向下滑动效果
+            if (isVerticalSwipe && deltaY > 0) {
+                const progress = Math.min(deltaY / 300, 1);
+                const opacity = 1 - progress * 0.7;
+                const scale = 1 - progress * 0.2;
+
+                viewer.style.backgroundColor = `rgba(0, 0, 0, ${opacity})`;
+                image.style.transform = `translateY(${deltaY}px) scale(${scale})`;
+                image.style.transition = 'none';
+            }
+        });
+
+        viewer.addEventListener('touchend', () => {
+            if (!isSwiping) return;
+
+            const deltaY = touchEndY - touchStartY;
+
+            if (isVerticalSwipe) {
+                if (deltaY > 100) {
+                    // 关闭
+                    showStatus('✅ 滑动距离足够,已关闭');
+                    closeViewer();
+                } else {
+                    // 恢复
+                    showStatus('↩️ 滑动距离不够,已恢复');
+                    viewer.style.backgroundColor = '';
+                    image.style.transition = 'transform 0.3s ease';
+                    image.style.transform = '';
+                    setTimeout(() => {
+                        image.style.transition = '';
+                    }, 300);
+                }
+            }
+
+            isSwiping = false;
+            isVerticalSwipe = false;
+        });
+    </script>
+</body>
+</html>
+

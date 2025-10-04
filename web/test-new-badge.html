@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新标记功能测试</title>
+    <link rel="stylesheet" href="css/style.css?v=17">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            padding: 2rem;
+            background: #1a1a2e;
+            color: #fff;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: #16213e;
+            border-radius: 0.5rem;
+        }
+        h1, h2 {
+            color: #667eea;
+        }
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .test-info {
+            background: #0f3460;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .test-info code {
+            background: #1a1a2e;
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.25rem;
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 新标记功能测试页面</h1>
+        
+        <div class="test-info">
+            <h3>测试说明:</h3>
+            <ul>
+                <li>下面显示了两个历史记录卡片</li>
+                <li>第一个卡片有 <code>isNew: true</code> 标记</li>
+                <li>第二个卡片是普通卡片</li>
+                <li>观察两者的视觉差异</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h2>1. 新生成的照片卡片 (isNew: true)</h2>
+            <div class="history-list">
+                <div class="history-item history-item-new" data-item-id="test-new-1">
+                    <div class="history-item-content">
+                        <div><strong>测试提示词 - 新生成的照片</strong></div>
+                        <div class="text-muted">2025-01-15 10:30:00</div>
+                        <div class="text-muted">
+                            模型: 4.0 | 4k | 3:4 | <i class="fas fa-clock"></i> 25秒
+                        </div>
+                    </div>
+                    <div class="history-item-images">
+                        <div class="image-wrapper">
+                            <div style="width: 100%; padding-bottom: 133%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 0.5rem;"></div>
+                        </div>
+                        <div class="image-wrapper">
+                            <div style="width: 100%; padding-bottom: 133%; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 0.5rem;"></div>
+                        </div>
+                        <div class="image-wrapper">
+                            <div style="width: 100%; padding-bottom: 133%; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 0.5rem;"></div>
+                        </div>
+                        <div class="image-wrapper">
+                            <div style="width: 100%; padding-bottom: 133%; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); border-radius: 0.5rem;"></div>
+                        </div>
+                    </div>
+                    <div class="new-badge"><i class="fas fa-star"></i> 新</div>
+                    <button class="btn-delete-history" title="删除">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="test-info" style="margin-top: 1rem;">
+                <strong>预期效果:</strong>
+                <ul>
+                    <li>✅ 紫蓝色渐变背景</li>
+                    <li>✅ 紫色发光边框 (呼吸动画)</li>
+                    <li>✅ 右上角"⭐ 新"徽章</li>
+                    <li>✅ 徽章上下浮动动画</li>
+                    <li>✅ 星星旋转动画</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>2. 普通照片卡片 (无 isNew 标记)</h2>
+            <div class="history-list">
+                <div class="history-item" data-item-id="test-normal-1">
+                    <div class="history-item-content">
+                        <div><strong>测试提示词 - 普通照片</strong></div>
+                        <div class="text-muted">2025-01-14 15:20:00</div>
+                        <div class="text-muted">
+                            模型: 4.0 | 4k | 16:9 | <i class="fas fa-clock"></i> 30秒
+                        </div>
+                    </div>
+                    <div class="history-item-images">
+                        <div class="image-wrapper">
+                            <div style="width: 100%; padding-bottom: 133%; background: #2d3748; border-radius: 0.5rem;"></div>
+                        </div>
+                        <div class="image-wrapper">
+                            <div style="width: 100%; padding-bottom: 133%; background: #2d3748; border-radius: 0.5rem;"></div>
+                        </div>
+                        <div class="image-wrapper">
+                            <div style="width: 100%; padding-bottom: 133%; background: #2d3748; border-radius: 0.5rem;"></div>
+                        </div>
+                        <div class="image-wrapper">
+                            <div style="width: 100%; padding-bottom: 133%; background: #2d3748; border-radius: 0.5rem;"></div>
+                        </div>
+                    </div>
+                    <button class="btn-delete-history" title="删除">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="test-info" style="margin-top: 1rem;">
+                <strong>预期效果:</strong>
+                <ul>
+                    <li>✅ 灰色背景</li>
+                    <li>✅ 无边框</li>
+                    <li>✅ 无徽章</li>
+                    <li>✅ 无动画</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>3. CSS 样式检查</h2>
+            <div class="test-info">
+                <p>打开浏览器开发者工具 (F12),检查以下内容:</p>
+                <ol>
+                    <li>检查 <code>.history-item-new</code> 类是否正确应用</li>
+                    <li>检查 <code>.new-badge</code> 元素是否存在</li>
+                    <li>检查动画是否正常播放:
+                        <ul>
+                            <li><code>newItemPulse</code> - 边框呼吸</li>
+                            <li><code>badgeBounce</code> - 徽章浮动</li>
+                            <li><code>badgeSpin</code> - 星星旋转</li>
+                        </ul>
+                    </li>
+                    <li>检查 CSS 文件是否正确加载 (版本号: v=17)</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>4. 调试步骤</h2>
+            <div class="test-info">
+                <h4>如果新标记没有显示,请按以下步骤排查:</h4>
+                <ol>
+                    <li><strong>清除浏览器缓存</strong>
+                        <ul>
+                            <li>按 Ctrl+Shift+Delete</li>
+                            <li>或者按 Ctrl+F5 强制刷新</li>
+                        </ul>
+                    </li>
+                    <li><strong>检查 CSS 文件</strong>
+                        <ul>
+                            <li>打开开发者工具 → Network 标签</li>
+                            <li>刷新页面</li>
+                            <li>查找 <code>style.css?v=17</code></li>
+                            <li>确认文件已加载且包含新样式</li>
+                        </ul>
+                    </li>
+                    <li><strong>检查控制台</strong>
+                        <ul>
+                            <li>打开开发者工具 → Console 标签</li>
+                            <li>查看是否有 JavaScript 错误</li>
+                            <li>查看是否有 CSS 加载错误</li>
+                        </ul>
+                    </li>
+                    <li><strong>检查元素</strong>
+                        <ul>
+                            <li>右键点击新卡片 → 检查元素</li>
+                            <li>确认 <code>history-item-new</code> 类存在</li>
+                            <li>确认 <code>new-badge</code> 元素存在</li>
+                        </ul>
+                    </li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>5. 返回主应用</h2>
+            <div class="test-info">
+                <p>测试完成后,<a href="index.html" style="color: #667eea;">点击这里返回主应用</a></p>
+                <p>在主应用中生成新图片,观察是否显示新标记</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        console.log('=== 新标记功能测试页面 ===');
+        console.log('CSS 版本: v=17');
+        console.log('检查 .history-item-new 类:', document.querySelector('.history-item-new'));
+        console.log('检查 .new-badge 元素:', document.querySelector('.new-badge'));
+        
+        // 检查 CSS 样式
+        const newItem = document.querySelector('.history-item-new');
+        if (newItem) {
+            const styles = window.getComputedStyle(newItem);
+            console.log('背景:', styles.background);
+            console.log('边框:', styles.border);
+            console.log('阴影:', styles.boxShadow);
+        }
+        
+        const badge = document.querySelector('.new-badge');
+        if (badge) {
+            const styles = window.getComputedStyle(badge);
+            console.log('徽章背景:', styles.background);
+            console.log('徽章动画:', styles.animation);
+        }
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>删除功能测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-left: 4px solid #667eea;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        #results {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗑️ 删除功能测试</h1>
+        
+        <div class="test-section">
+            <h2>测试说明</h2>
+            <p>此页面用于测试历史记录删除功能是否正确同步到服务器。</p>
+            <ul>
+                <li>✅ 删除单条记录应该从服务器移除</li>
+                <li>✅ 删除后刷新页面,记录不应该再出现</li>
+                <li>✅ 删除操作应该保存到 history.json 文件</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h2>测试操作</h2>
+            <button onclick="testDeleteFunction()">🧪 测试删除功能</button>
+            <button onclick="viewHistory()">📋 查看历史记录</button>
+            <button onclick="clearResults()">🧹 清空结果</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const resultsDiv = document.getElementById('results');
+
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.textContent = message;
+            resultsDiv.appendChild(div);
+        }
+
+        function clearResults() {
+            resultsDiv.innerHTML = '';
+        }
+
+        async function viewHistory() {
+            clearResults();
+            addResult('正在获取历史记录...', 'info');
+
+            try {
+                const response = await fetch('/api/history');
+                const data = await response.json();
+
+                addResult(`✅ 成功获取历史记录`, 'success');
+                addResult(`📊 总记录数: ${data.history.length}`, 'info');
+
+                if (data.history.length > 0) {
+                    addResult('最新的 3 条记录:', 'info');
+                    data.history.slice(0, 3).forEach((item, index) => {
+                        addResult(`${index + 1}. ID: ${item.id} | ${item.prompt.substring(0, 30)}... | ${item.timestamp}`, 'info');
+                    });
+                } else {
+                    addResult('⚠️ 没有历史记录', 'info');
+                }
+            } catch (error) {
+                addResult(`❌ 获取历史记录失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testDeleteFunction() {
+            clearResults();
+            addResult('🧪 开始测试删除功能...', 'info');
+
+            try {
+                // 步骤 1: 获取当前历史记录
+                addResult('步骤 1: 获取当前历史记录', 'info');
+                const response1 = await fetch('/api/history');
+                const data1 = await response1.json();
+                const beforeCount = data1.history.length;
+                addResult(`✅ 删除前记录数: ${beforeCount}`, 'success');
+
+                if (beforeCount === 0) {
+                    addResult('⚠️ 没有历史记录可测试,请先生成一些图片', 'error');
+                    return;
+                }
+
+                // 步骤 2: 选择最后一条记录进行删除
+                const testRecord = data1.history[beforeCount - 1];
+                const testId = testRecord.id;
+                addResult(`步骤 2: 选择要删除的记录`, 'info');
+                addResult(`📝 记录 ID: ${testId}`, 'info');
+                addResult(`📝 提示词: ${testRecord.prompt.substring(0, 50)}...`, 'info');
+
+                // 步骤 3: 调用删除 API
+                addResult('步骤 3: 调用删除 API', 'info');
+                const response2 = await fetch(`/api/history/${testId}`, {
+                    method: 'DELETE'
+                });
+                const data2 = await response2.json();
+                
+                if (data2.success) {
+                    addResult('✅ 删除 API 调用成功', 'success');
+                } else {
+                    addResult(`❌ 删除 API 返回失败: ${data2.message}`, 'error');
+                    return;
+                }
+
+                // 步骤 4: 再次获取历史记录,验证删除
+                addResult('步骤 4: 验证删除结果', 'info');
+                const response3 = await fetch('/api/history');
+                const data3 = await response3.json();
+                const afterCount = data3.history.length;
+                addResult(`✅ 删除后记录数: ${afterCount}`, 'success');
+
+                // 步骤 5: 检查记录是否真的被删除
+                const stillExists = data3.history.find(h => h.id === testId);
+                
+                if (stillExists) {
+                    addResult('❌ 测试失败: 记录仍然存在于服务器!', 'error');
+                    addResult('⚠️ 删除功能未正确同步到服务器', 'error');
+                } else {
+                    addResult('✅ 测试成功: 记录已从服务器移除', 'success');
+                }
+
+                // 步骤 6: 验证数量变化
+                if (afterCount === beforeCount - 1) {
+                    addResult('✅ 记录数量正确: 减少了 1 条', 'success');
+                    addResult('🎉 删除功能完全正常,已同步到服务器!', 'success');
+                } else {
+                    addResult(`❌ 记录数量异常: 期望 ${beforeCount - 1}, 实际 ${afterCount}`, 'error');
+                }
+
+                // 步骤 7: 提示刷新验证
+                addResult('步骤 5: 建议操作', 'info');
+                addResult('💡 请刷新主页面 (Ctrl+R),确认删除的记录不再显示', 'info');
+
+            } catch (error) {
+                addResult(`❌ 测试过程出错: ${error.message}`, 'error');
+                console.error('测试错误:', error);
+            }
+        }
+
+        // 页面加载时显示欢迎信息
+        window.addEventListener('load', () => {
+            addResult('👋 欢迎使用删除功能测试工具', 'success');
+            addResult('点击上方按钮开始测试', 'info');
+        });
+    </script>
+</body>
+</html>
+

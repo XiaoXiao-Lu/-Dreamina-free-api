@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>版本检查</title>
+
+    <!-- 引入主应用的 CSS 和 JS -->
+    <link rel="stylesheet" href="css/style.css?v=17">
+    <script src="js/config.js?v=12"></script>
+    <script src="js/api.js?v=12"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 2rem;
+            background: #1a1a2e;
+            color: #fff;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #667eea;
+        }
+        .check-item {
+            background: #16213e;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0.5rem;
+            border-left: 4px solid #667eea;
+        }
+        .success {
+            border-left-color: #43e97b;
+        }
+        .error {
+            border-left-color: #f5576c;
+        }
+        .code {
+            background: #0f3460;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            font-family: monospace;
+            margin: 0.5rem 0;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 1rem;
+            margin: 0.5rem;
+        }
+        button:hover {
+            background: #764ba2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 版本检查工具</h1>
+        
+        <div id="results"></div>
+        
+        <div style="margin-top: 2rem;">
+            <button onclick="checkVersions()">重新检查</button>
+            <button onclick="clearCache()">清除缓存并刷新</button>
+            <button onclick="location.href='index.html'">返回主应用</button>
+        </div>
+    </div>
+
+    <script>
+        function addResult(title, content, isSuccess) {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = 'check-item ' + (isSuccess ? 'success' : 'error');
+            div.innerHTML = `
+                <h3>${isSuccess ? '✅' : '❌'} ${title}</h3>
+                <div class="code">${content}</div>
+            `;
+            results.appendChild(div);
+        }
+
+        async function checkVersions() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<h2>检查中...</h2>';
+
+            // 1. 检查 HTML 中的版本号
+            const cssLink = document.querySelector('link[href*="style.css"]');
+            const cssVersion = cssLink ? cssLink.href.match(/v=(\d+)/)?.[1] : 'unknown';
+            
+            addResult(
+                'CSS 版本 (应该是 v=17)',
+                `当前版本: v=${cssVersion}`,
+                cssVersion === '17'
+            );
+
+            // 2. 检查 JS 文件版本
+            try {
+                const response = await fetch('/index.html');
+                const html = await response.text();
+                
+                const apiMatch = html.match(/api\.js\?v=(\d+)/);
+                const uiMatch = html.match(/ui\.js\?v=(\d+)/);
+                
+                const apiVersion = apiMatch ? apiMatch[1] : 'unknown';
+                const uiVersion = uiMatch ? uiMatch[1] : 'unknown';
+                
+                addResult(
+                    'JS 版本 (应该是 v=12)',
+                    `api.js: v=${apiVersion}<br>ui.js: v=${uiVersion}`,
+                    apiVersion === '12' && uiVersion === '12'
+                );
+            } catch (error) {
+                addResult('JS 版本检查', '检查失败: ' + error.message, false);
+            }
+
+            // 3. 检查 storage 对象是否有新方法
+            try {
+                // 等待一下让 storage 对象初始化
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                const hasStorage = typeof storage !== 'undefined';
+                const hasNewMethod = hasStorage && typeof storage.markHistoryAsViewed === 'function';
+
+                let content = '';
+                if (!hasStorage) {
+                    content = 'storage 对象不存在';
+                } else if (!hasNewMethod) {
+                    content = 'storage 对象存在,但 markHistoryAsViewed 方法不存在';
+                } else {
+                    content = '方法存在';
+                }
+
+                addResult(
+                    'storage.markHistoryAsViewed 方法',
+                    content,
+                    hasNewMethod
+                );
+            } catch (error) {
+                addResult('storage 对象检查', '检查失败: ' + error.message, false);
+            }
+
+            // 4. 检查 CSS 样式是否存在
+            const testDiv = document.createElement('div');
+            testDiv.className = 'history-item-new';
+            testDiv.style.display = 'none';
+            document.body.appendChild(testDiv);
+            
+            const styles = window.getComputedStyle(testDiv);
+            const hasGradient = styles.background.includes('linear-gradient') || 
+                               styles.backgroundImage.includes('linear-gradient');
+            
+            addResult(
+                '.history-item-new CSS 样式',
+                hasGradient ? '渐变背景存在' : '渐变背景不存在',
+                hasGradient
+            );
+            
+            document.body.removeChild(testDiv);
+
+            // 5. 检查历史记录数据
+            try {
+                const response = await fetch('/api/history');
+                const data = await response.json();
+                
+                if (data.success && data.history.length > 0) {
+                    const latestItem = data.history[0];
+                    const hasIsNew = 'isNew' in latestItem;
+                    
+                    addResult(
+                        '最新历史记录的 isNew 字段',
+                        hasIsNew ? 
+                            `isNew: ${latestItem.isNew}<br>ID: ${latestItem.id}<br>提示词: ${latestItem.prompt.substring(0, 30)}...` :
+                            '字段不存在',
+                        hasIsNew
+                    );
+                } else {
+                    addResult(
+                        '历史记录数据',
+                        '没有历史记录',
+                        false
+                    );
+                }
+            } catch (error) {
+                addResult('历史记录检查', '检查失败: ' + error.message, false);
+            }
+
+            // 6. 测试 console.log
+            console.log('=== 版本检查完成 ===');
+            console.log('如果您在主应用中看不到日志,说明 JS 文件没有正确加载');
+            
+            addResult(
+                '控制台测试',
+                '请查看浏览器控制台 (F12 → Console),应该看到 "=== 版本检查完成 ===" 日志',
+                true
+            );
+        }
+
+        function clearCache() {
+            if (confirm('这将清除缓存并刷新页面,确定吗?')) {
+                // 清除 localStorage
+                localStorage.clear();
+                
+                // 添加时间戳强制刷新
+                const timestamp = new Date().getTime();
+                window.location.href = window.location.pathname + '?t=' + timestamp;
+            }
+        }
+
+        // 页面加载时自动检查
+        window.onload = checkVersions;
+    </script>
+</body>
+</html>
+

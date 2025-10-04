@@ -575,6 +575,11 @@ class UIManager {
         this.imageTranslateX = 0;
         this.imageTranslateY = 0;
         this.updateImageTransform();
+
+        // 重置滑动相关样式
+        this.fullscreenViewer.style.backgroundColor = '';
+        this.fullscreenImage.style.transition = '';
+        this.fullscreenImage.style.transform = '';
     }
 
     // 初始化图片缩放和拖动
@@ -821,10 +826,11 @@ class UIManager {
         let touchEndX = 0;
         let touchEndY = 0;
         let isSwiping = false;
+        let isVerticalSwipe = false;
 
         this.fullscreenViewer.addEventListener('touchstart', (e) => {
-            // 只在全屏查看器打开且有多张图片时响应
-            if (!this.fullscreenViewer.classList.contains('active') || this.currentImageList.length <= 1) {
+            // 只在全屏查看器打开时响应
+            if (!this.fullscreenViewer.classList.contains('active')) {
                 return;
             }
 
@@ -835,7 +841,10 @@ class UIManager {
 
             touchStartX = e.touches[0].clientX;
             touchStartY = e.touches[0].clientY;
+            touchEndX = touchStartX;
+            touchEndY = touchStartY;
             isSwiping = true;
+            isVerticalSwipe = false;
         }, { passive: true });
 
         this.fullscreenViewer.addEventListener('touchmove', (e) => {
@@ -845,6 +854,26 @@ class UIManager {
 
             touchEndX = e.touches[0].clientX;
             touchEndY = e.touches[0].clientY;
+
+            const deltaX = touchEndX - touchStartX;
+            const deltaY = touchEndY - touchStartY;
+
+            // 判断是否为垂直滑动
+            if (!isVerticalSwipe && Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 10) {
+                isVerticalSwipe = true;
+            }
+
+            // 如果是向下滑动,实时更新视觉效果
+            if (isVerticalSwipe && deltaY > 0) {
+                // 计算透明度和缩放 (滑动距离越大,透明度越低,缩放越小)
+                const progress = Math.min(deltaY / 300, 1); // 最多滑动300px
+                const opacity = 1 - progress * 0.7; // 透明度从1降到0.3
+                const scale = 1 - progress * 0.2; // 缩放从1降到0.8
+
+                this.fullscreenViewer.style.backgroundColor = `rgba(0, 0, 0, ${opacity})`;
+                this.fullscreenImage.style.transform = `translateY(${deltaY}px) scale(${scale})`;
+                this.fullscreenImage.style.transition = 'none';
+            }
         }, { passive: true });
 
         this.fullscreenViewer.addEventListener('touchend', (e) => {
@@ -856,10 +885,10 @@ class UIManager {
             const deltaX = touchEndX - touchStartX;
             const deltaY = touchEndY - touchStartY;
 
-            // 判断是否为水平滑动(水平距离大于垂直距离)
+            // 判断滑动方向
             if (Math.abs(deltaX) > Math.abs(deltaY)) {
-                // 滑动距离超过50px才触发
-                if (Math.abs(deltaX) > 50) {
+                // 水平滑动 - 切换图片 (仅在有多张图片时)
+                if (this.currentImageList.length > 1 && Math.abs(deltaX) > 50) {
                     if (deltaX > 0) {
                         // 向右滑动 - 上一张
                         this.showPreviousImage();
@@ -868,9 +897,24 @@ class UIManager {
                         this.showNextImage();
                     }
                 }
+            } else if (isVerticalSwipe) {
+                // 垂直滑动
+                if (deltaY > 100) {
+                    // 向下滑动超过100px - 关闭查看器
+                    this.hideFullscreenViewer();
+                } else {
+                    // 滑动距离不够,恢复原状
+                    this.fullscreenViewer.style.backgroundColor = '';
+                    this.fullscreenImage.style.transition = 'transform 0.3s ease';
+                    this.fullscreenImage.style.transform = '';
+                    setTimeout(() => {
+                        this.fullscreenImage.style.transition = '';
+                    }, 300);
+                }
             }
 
             isSwiping = false;
+            isVerticalSwipe = false;
         }, { passive: true });
     }
 
@@ -1059,8 +1103,14 @@ class UIManager {
             const displayHistory = this.allHistory.slice(0, this.historyDisplayCount);
 
             // 渲染历史记录
-            this.historyList.innerHTML = displayHistory.map(item => `
-                <div class="history-item">
+            this.historyList.innerHTML = displayHistory.map(item => {
+                // 调试日志
+                if (item.isNew) {
+                    console.log('[UI] 渲染新生成的照片:', item.id, item.isNew);
+                }
+
+                return `
+                <div class="history-item ${item.isNew ? 'history-item-new' : ''}" data-item-id="${item.id}">
                     <div class="history-item-content" onclick="ui.loadHistoryItem('${item.id}')">
                         <div><strong>${item.prompt.substring(0, 50)}${item.prompt.length > 50 ? '...' : ''}</strong></div>
                         <div class="text-muted">${new Date(item.timestamp).toLocaleString()}</div>
@@ -1087,11 +1137,13 @@ class UIManager {
                             `;
                         }).join('')}
                     </div>
+                    ${item.isNew ? '<div class="new-badge"><i class="fas fa-star"></i> 新</div>' : ''}
                     <button class="btn-delete-history" onclick="ui.deleteHistoryItem('${item.id}')" title="删除">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
-            `).join('');
+                `;
+            }).join('');
 
             // 显示/隐藏"加载更多"按钮
             const loadingDiv = document.getElementById('historyLoading');
@@ -1128,6 +1180,37 @@ class UIManager {
 
         // 传递完整的图片列表
         this.showImagePreview(originalUrl, thumbnailUrl, images, imageIndex);
+
+        // 标记为已查看
+        if (historyItem.isNew) {
+            this.markHistoryItemAsViewed(historyId);
+        }
+    }
+
+    // 标记历史记录为已查看
+    async markHistoryItemAsViewed(itemId) {
+        try {
+            // 调用 API 标记为已查看
+            await storage.markHistoryAsViewed(itemId);
+
+            // 更新本地数据
+            const item = this.allHistory.find(h => h.id === itemId);
+            if (item) {
+                item.isNew = false;
+            }
+
+            // 更新 UI - 移除新标记样式
+            const historyItemEl = document.querySelector(`.history-item[data-item-id="${itemId}"]`);
+            if (historyItemEl) {
+                historyItemEl.classList.remove('history-item-new');
+                const badge = historyItemEl.querySelector('.new-badge');
+                if (badge) {
+                    badge.remove();
+                }
+            }
+        } catch (error) {
+            console.error('标记历史记录失败:', error);
+        }
     }
 
     // 加载历史记录项

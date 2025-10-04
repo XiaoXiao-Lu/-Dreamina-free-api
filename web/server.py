@@ -900,6 +900,9 @@ def add_history():
     try:
         data = request.json
 
+        # 调试日志
+        logger.info(f"添加历史记录, isNew: {data.get('isNew', False)}")
+
         # 先使用原始URL创建历史记录(不等待下载)
         original_images = data.get('images', [])
         local_images = []
@@ -930,7 +933,8 @@ def add_history():
             'mode': data.get('mode', 't2i'),
             'images': local_images,  # 先保存原始URL
             'historyId': history_id_to_check,
-            'duration': data.get('duration', None)  # 保存耗时
+            'duration': data.get('duration', None),  # 保存耗时
+            'isNew': data.get('isNew', False)  # 保存新标记
         }
 
         # 添加到列表开头(最新的在前面)
@@ -986,18 +990,86 @@ def delete_history(history_id):
     """删除历史记录"""
     try:
         global history_records
+
+        # 找到要删除的记录,删除其关联的图片文件
+        record_to_delete = None
+        for record in history_records:
+            if record['id'] == history_id:
+                record_to_delete = record
+                break
+
+        if record_to_delete:
+            # 删除关联的图片文件
+            images = record_to_delete.get('images', [])
+            deleted_files = []
+            for img in images:
+                if isinstance(img, dict):
+                    # 删除本地文件(原图)
+                    local_path = img.get('local')
+                    if local_path:
+                        full_path = IMAGES_DIR / os.path.basename(local_path)
+                        if full_path.exists():
+                            try:
+                                full_path.unlink()
+                                deleted_files.append(os.path.basename(local_path))
+                                logger.info(f"删除图片文件: {os.path.basename(local_path)}")
+                            except Exception as e:
+                                logger.error(f"删除图片文件失败 {local_path}: {e}")
+
+                    # 删除缩略图(在 thumbnails 子目录)
+                    thumbnail_path = img.get('thumbnail')
+                    if thumbnail_path:
+                        full_path = THUMBNAILS_DIR / os.path.basename(thumbnail_path)
+                        if full_path.exists():
+                            try:
+                                full_path.unlink()
+                                deleted_files.append(os.path.basename(thumbnail_path))
+                                logger.info(f"删除缩略图文件: {os.path.basename(thumbnail_path)}")
+                            except Exception as e:
+                                logger.error(f"删除缩略图文件失败 {thumbnail_path}: {e}")
+
+        # 从列表中移除记录
         history_records = [h for h in history_records if h['id'] != history_id]
 
         # 保存到文件
         save_history(history_records)
 
-        logger.info(f"删除历史记录: {history_id}")
+        logger.info(f"删除历史记录: {history_id}, 删除了 {len(deleted_files)} 个文件")
+
+        return jsonify({
+            'success': True,
+            'deleted_files': deleted_files
+        })
+    except Exception as e:
+        logger.error(f"删除历史记录失败: {e}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/api/history/<history_id>/viewed', methods=['POST'])
+def mark_history_viewed(history_id):
+    """标记历史记录为已查看"""
+    try:
+        global history_records
+
+        # 找到对应的历史记录并移除 isNew 标记
+        for record in history_records:
+            if record['id'] == history_id:
+                if 'isNew' in record:
+                    del record['isNew']
+                break
+
+        # 保存到文件
+        save_history(history_records)
+
+        logger.info(f"标记历史记录为已查看: {history_id}")
 
         return jsonify({
             'success': True
         })
     except Exception as e:
-        logger.error(f"删除历史记录失败: {e}")
+        logger.error(f"标记历史记录失败: {e}")
         return jsonify({
             'success': False,
             'message': str(e)
@@ -1009,17 +1081,48 @@ def clear_history():
     try:
         global history_records
         count = len(history_records)
+        deleted_files = []
+
+        # 删除所有关联的图片文件
+        for record in history_records:
+            images = record.get('images', [])
+            for img in images:
+                if isinstance(img, dict):
+                    # 删除本地文件(原图)
+                    local_path = img.get('local')
+                    if local_path:
+                        full_path = IMAGES_DIR / os.path.basename(local_path)
+                        if full_path.exists():
+                            try:
+                                full_path.unlink()
+                                deleted_files.append(os.path.basename(local_path))
+                            except Exception as e:
+                                logger.error(f"删除图片文件失败 {local_path}: {e}")
+
+                    # 删除缩略图(在 thumbnails 子目录)
+                    thumbnail_path = img.get('thumbnail')
+                    if thumbnail_path:
+                        full_path = THUMBNAILS_DIR / os.path.basename(thumbnail_path)
+                        if full_path.exists():
+                            try:
+                                full_path.unlink()
+                                deleted_files.append(os.path.basename(thumbnail_path))
+                            except Exception as e:
+                                logger.error(f"删除缩略图文件失败 {thumbnail_path}: {e}")
+
+        # 清空记录列表
         history_records = []
 
         # 保存到文件
         save_history(history_records)
 
-        logger.info(f"清空历史记录，共删除 {count} 条")
+        logger.info(f"清空历史记录，共删除 {count} 条记录, {len(deleted_files)} 个文件")
 
         return jsonify({
             'success': True,
             'deleted_count': count,
-            'message': f'已清空 {count} 条历史记录'
+            'deleted_files': len(deleted_files),
+            'message': f'已清空 {count} 条历史记录, 删除 {len(deleted_files)} 个文件'
         })
     except Exception as e:
         logger.error(f"清空历史记录失败: {e}")
