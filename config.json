@@ -3,9 +3,7 @@
     "version": "2.0.0",
     "accounts": [
         {
-            "sessionid": "f3ee3071a720ae3d89f9c86d404e1820",
-            "description": "测试账号",
-            "web_id": "4139140062641454428"
+           
         }
     ],
     "api": {
